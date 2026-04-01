@@ -263,22 +263,6 @@ const ChatRoom = () => {
               {isAdmin && <span className="text-primary font-mono text-xs">#{userTag.current}</span>}
             </button>
           )}
-          <Select value={disguise} onValueChange={setDisguise}>
-            <SelectTrigger className="h-8 w-[130px] text-xs bg-muted">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {DISGUISE_PRESETS.map((p) => (
-                <SelectItem key={p.id} value={p.id} className="text-xs">{p.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Input
-            value={tabName}
-            onChange={(e) => setTabName(e.target.value)}
-            placeholder={DISGUISE_PRESETS.find((p) => p.id === disguise)?.defaultTitle}
-            className="h-8 w-44 text-xs bg-muted"
-          />
           <Button size="sm" variant="outline" onClick={handleDownload} className="h-8 gap-1 text-xs">
             <Download className="w-3.5 h-3.5" />
             HTML
