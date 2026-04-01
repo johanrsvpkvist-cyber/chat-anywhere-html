@@ -216,14 +216,12 @@ const ChatRoom = () => {
   };
 
   const handleDownload = () => {
-    const preset = DISGUISE_PRESETS.find((p) => p.id === disguise)!;
-    const title = tabName.trim() || preset.defaultTitle;
-    const html = generateChatHTML({ title, favicon: preset.favicon });
+    const html = generateChatHTML();
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = title.replace(/[^a-zA-Z0-9 ]/g, "").slice(0, 40).trim() + ".html";
+    a.download = "OpenChat.html";
     a.click();
     URL.revokeObjectURL(url);
   };
