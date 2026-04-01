@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { generateChatHTML } from "@/lib/generateHTML";
+import { generateChatHTML } from "@/lib/generateHTML";
 import { toast } from "sonner";
 
 interface Message {
