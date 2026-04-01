@@ -17,39 +17,6 @@ interface Message {
 
 const ADMIN_PASSWORD = "ratracekareem";
 
-const DISGUISE_PRESETS = [
-  {
-    id: "google-docs",
-    label: "Google Docs",
-    favicon: "https://ssl.gstatic.com/docs/documents/images/kix-favicon7.ico",
-    defaultTitle: "Untitled document - Google Docs",
-  },
-  {
-    id: "google-slides",
-    label: "Google Slides",
-    favicon: "https://ssl.gstatic.com/docs/presentations/images/favicon5.ico",
-    defaultTitle: "Untitled presentation - Google Slides",
-  },
-  {
-    id: "google-classroom",
-    label: "Google Classroom",
-    favicon: "https://ssl.gstatic.com/classroom/favicon.png",
-    defaultTitle: "Google Classroom",
-  },
-  {
-    id: "khan-academy",
-    label: "Khan Academy",
-    favicon: "https://cdn.kastatic.org/images/favicon.ico",
-    defaultTitle: "Khan Academy",
-  },
-  {
-    id: "wikipedia",
-    label: "Wikipedia",
-    favicon: "https://en.wikipedia.org/static/favicon/wikipedia.ico",
-    defaultTitle: "Wikipedia, the free encyclopedia",
-  },
-];
-
 function getOrCreateTag(): string {
   const stored = localStorage.getItem("chat-user-tag");
   if (stored) return stored;
@@ -66,8 +33,6 @@ const ChatRoom = () => {
   const [tempName, setTempName] = useState(username);
   const [uploading, setUploading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [disguise, setDisguise] = useState("google-docs");
-  const [tabName, setTabName] = useState("");
   const userTag = useRef(getOrCreateTag());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
