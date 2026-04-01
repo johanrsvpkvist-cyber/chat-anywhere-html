@@ -1,13 +1,20 @@
-export function generateChatHTML(): string {
+interface DisguiseOptions {
+  title: string;
+  favicon: string;
+}
+
+export function generateChatHTML(options: DisguiseOptions): string {
   const SUPABASE_URL = "https://krvtjbsluoepatdezarg.supabase.co";
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtydnRqYnNsdW9lcGF0ZGV6YXJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5MzE5ODksImV4cCI6MjA5MDUwNzk4OX0.sxUlgZENLKZGlO09lm8Bsbqv1NLYX2YTYeQC8Fu1_9Q";
+  const { title, favicon } = options;
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OpenChat</title>
+<title>${title}</title>
+<link rel="icon" href="${favicon}">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"><\/script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
