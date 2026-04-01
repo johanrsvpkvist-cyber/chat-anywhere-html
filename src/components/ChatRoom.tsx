@@ -73,6 +73,8 @@ const ChatRoom = () => {
   const [tempName, setTempName] = useState(username);
   const [uploading, setUploading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [disguise, setDisguise] = useState("google-docs");
+  const [tabName, setTabName] = useState("");
   const userTag = useRef(getOrCreateTag());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
