@@ -20,6 +20,7 @@ export type Database = {
           created_at: string
           id: string
           image_url: string | null
+          user_tag: string
           username: string
         }
         Insert: {
@@ -27,6 +28,7 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string | null
+          user_tag?: string
           username?: string
         }
         Update: {
@@ -34,7 +36,29 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string | null
+          user_tag?: string
           username?: string
+        }
+        Relationships: []
+      }
+      muted_users: {
+        Row: {
+          created_at: string
+          id: string
+          muted_until: string
+          user_tag: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          muted_until: string
+          user_tag: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          muted_until?: string
+          user_tag?: string
         }
         Relationships: []
       }
