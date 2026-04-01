@@ -2,7 +2,14 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Image, Settings, Download, Trash2, X } from "lucide-react";
+import { Send, Image, Settings, Download, X } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { generateChatHTML } from "@/lib/generateHTML";
 import { toast } from "sonner";
 
