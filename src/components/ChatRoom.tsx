@@ -3,13 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Image, Settings, Download, X } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { generateChatHTML } from "@/lib/generateHTML";
 import { toast } from "sonner";
 
@@ -23,39 +16,6 @@ interface Message {
 }
 
 const ADMIN_PASSWORD = "ratracekareem";
-
-const DISGUISE_PRESETS = [
-  {
-    id: "google-docs",
-    label: "Google Docs",
-    favicon: "https://ssl.gstatic.com/docs/documents/images/kix-favicon7.ico",
-    defaultTitle: "Untitled document - Google Docs",
-  },
-  {
-    id: "google-slides",
-    label: "Google Slides",
-    favicon: "https://ssl.gstatic.com/docs/presentations/images/favicon5.ico",
-    defaultTitle: "Untitled presentation - Google Slides",
-  },
-  {
-    id: "google-classroom",
-    label: "Google Classroom",
-    favicon: "https://ssl.gstatic.com/classroom/favicon.png",
-    defaultTitle: "Google Classroom",
-  },
-  {
-    id: "khan-academy",
-    label: "Khan Academy",
-    favicon: "https://cdn.kastatic.org/images/favicon.ico",
-    defaultTitle: "Khan Academy",
-  },
-  {
-    id: "wikipedia",
-    label: "Wikipedia",
-    favicon: "https://en.wikipedia.org/static/favicon/wikipedia.ico",
-    defaultTitle: "Wikipedia, the free encyclopedia",
-  },
-];
 
 function getOrCreateTag(): string {
   const stored = localStorage.getItem("chat-user-tag");
@@ -73,8 +33,6 @@ const ChatRoom = () => {
   const [tempName, setTempName] = useState(username);
   const [uploading, setUploading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [disguise, setDisguise] = useState("google-docs");
-  const [tabName, setTabName] = useState("");
   const userTag = useRef(getOrCreateTag());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -215,14 +173,12 @@ const ChatRoom = () => {
   };
 
   const handleDownload = () => {
-    const preset = DISGUISE_PRESETS.find((p) => p.id === disguise)!;
-    const title = tabName.trim() || preset.defaultTitle;
-    const html = generateChatHTML({ title, favicon: preset.favicon });
+    const html = generateChatHTML();
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = title.replace(/[^a-zA-Z0-9 ]/g, "").slice(0, 40).trim() + ".html";
+    a.download = "OpenChat.html";
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -264,22 +220,6 @@ const ChatRoom = () => {
               {isAdmin && <span className="text-primary font-mono text-xs">#{userTag.current}</span>}
             </button>
           )}
-          <Select value={disguise} onValueChange={setDisguise}>
-            <SelectTrigger className="h-8 w-[130px] text-xs bg-muted">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {DISGUISE_PRESETS.map((p) => (
-                <SelectItem key={p.id} value={p.id} className="text-xs">{p.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Input
-            value={tabName}
-            onChange={(e) => setTabName(e.target.value)}
-            placeholder={DISGUISE_PRESETS.find((p) => p.id === disguise)?.defaultTitle}
-            className="h-8 w-44 text-xs bg-muted"
-          />
           <Button size="sm" variant="outline" onClick={handleDownload} className="h-8 gap-1 text-xs">
             <Download className="w-3.5 h-3.5" />
             HTML
