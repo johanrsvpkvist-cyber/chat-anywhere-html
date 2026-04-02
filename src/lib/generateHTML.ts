@@ -245,7 +245,6 @@ document.getElementById("myTagDisplay").style.display="inline";
 document.getElementById("cmdHint").style.display="block";
 document.getElementById("msgInput").placeholder="Type a message or command...";
 inp.value="";
-alert("Admin mode activated 🔓");
 showToast("Admin access granted");
 return;
 }
