@@ -34,7 +34,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:radial-gradient(circle 
 .msg.self{align-self:flex-end;align-items:flex-end}
 .msg.other{align-self:flex-start;align-items:flex-start}
 .msg.system{align-self:center;max-width:100%;align-items:center}
-.meta{font-size:12px;color:var(--muted);margin-bottom:4px;padding:0 4px;display:flex;align-items:center;gap:4px}
+.meta{font-size:15px;font-weight:700;letter-spacing:.04em;color:rgba(238,247,255,.82);margin-bottom:4px;padding:0 4px;display:flex;align-items:center;gap:4px}
 .del-btn{background:none;border:none;color:var(--danger);cursor:pointer;font-size:12px;padding:0 2px;display:none}
 .del-btn:hover{color:#ff8787}
 .bubble{padding:10px 16px;border-radius:16px;font-size:14px;word-break:break-word;line-height:1.5}
@@ -62,6 +62,12 @@ body{font-family:'Inter',system-ui,sans-serif;background:radial-gradient(circle 
 .settings-btns button{flex:1;padding:10px;border-radius:8px;font-size:14px;cursor:pointer;border:none}
 .btn-save{background:var(--accent);color:var(--bg);font-weight:600}
 .btn-cancel{background:rgba(27,38,72,.95);color:var(--muted)}
+.toast-stack{position:fixed;top:18px;right:18px;display:flex;flex-direction:column;gap:10px;z-index:200;pointer-events:none}
+.toast{min-width:220px;max-width:min(360px,calc(100vw - 36px));padding:12px 16px;border-radius:14px;border:1px solid rgba(126,249,255,.26);background:rgba(9,15,32,.94);color:var(--text);box-shadow:0 18px 42px rgba(4,6,15,.55);font-size:12px;letter-spacing:.12em;text-transform:uppercase;transform:translateY(-8px);opacity:0;animation:toast-in .22s ease forwards}
+.toast.success{border-color:rgba(126,249,255,.38)}
+.toast.error{border-color:rgba(255,75,75,.45);color:#ffd7d7}
+@keyframes toast-in{to{transform:translateY(0);opacity:1}}
+@keyframes toast-out{to{transform:translateY(-8px);opacity:0}}
 @media (max-width:700px){body{padding:16px}.app{height:calc(100vh - 32px)}.panel{padding:18px}.header-right{margin-left:0}.msg{max-width:100%}}
 </style>
 </head>
@@ -113,6 +119,8 @@ body{font-family:'Inter',system-ui,sans-serif;background:radial-gradient(circle 
 </div>
 </div>
 
+<div class="toast-stack" id="toastStack"></div>
+
 <script>
 const sb=window.supabase.createClient("${SUPABASE_URL}","${SUPABASE_KEY}");
 let username=localStorage.getItem("chat-username")||"Anonymous";
@@ -154,7 +162,20 @@ function applySettings(){
   if(title)document.title=title;
   if(favicon)document.getElementById("favicon").href=favicon;
   localStorage.setItem("chat-disguise",JSON.stringify({title:title||document.title,favicon}));
+  showToast("Disguise updated");
   closeSettings();
+}
+
+function showToast(message,type="success"){
+  const stack=document.getElementById("toastStack");
+  const toast=document.createElement("div");
+  toast.className="toast "+type;
+  toast.textContent=message;
+  stack.appendChild(toast);
+  setTimeout(()=>{
+    toast.style.animation="toast-out .2s ease forwards";
+    setTimeout(()=>toast.remove(),200);
+  },2600);
 }
 
 async function load(){
@@ -198,7 +219,7 @@ const el=document.getElementById("msg-"+id);if(el)el.remove();
 
 async function checkMuted(){
 const{data}=await sb.from("muted_users").select("*").eq("user_tag",userTag).gte("muted_until",new Date().toISOString());
-if(data&&data.length>0){alert("You are muted until "+new Date(data[0].muted_until).toLocaleTimeString());return true;}
+if(data&&data.length>0){showToast("Muted until "+new Date(data[0].muted_until).toLocaleTimeString(),"error");return true;}
 return false;
 }
 
@@ -225,12 +246,14 @@ document.getElementById("cmdHint").style.display="block";
 document.getElementById("msgInput").placeholder="Type a message or command...";
 inp.value="";
 alert("Admin mode activated 🔓");
+showToast("Admin access granted");
 return;
 }
 
 if(isAdmin&&v==="/wipe"){
 await sb.from("messages").delete().neq("id","00000000-0000-0000-0000-000000000000");
 msgDiv.innerHTML="";
+showToast("/wipe executed — chat cleared");
 inp.value="";
 return;
 }
@@ -242,7 +265,7 @@ const targetName=await getDisplayNameByTag(tag);
 const until=new Date(Date.now()+mins*60000).toISOString();
 await sb.from("muted_users").insert({user_tag:tag,muted_until:until});
 await postSystemMessage(targetName+" #"+tag+" was "+(command==="timeout"?"timed out":"muted")+" for "+mins+" minute(s).");
-alert("User #"+tag+" muted for "+mins+" minute(s)");
+showToast("/"+command+" executed for "+targetName+" #"+tag+" ("+mins+" min)");
 inp.value="";
 return;
 }
@@ -253,7 +276,7 @@ const command=unCmdMatch[1];const tag=unCmdMatch[2];
 const targetName=await getDisplayNameByTag(tag);
 await sb.from("muted_users").delete().eq("user_tag",tag);
 await postSystemMessage(targetName+" #"+tag+" "+(command==="untimeout"?"is no longer timed out":"was unmuted")+".");
-alert("User #"+tag+" "+(command==="untimeout"?"timeout removed":"unmuted"));
+showToast("/"+command+" executed for "+targetName+" #"+tag);
 inp.value="";
 return;
 }
