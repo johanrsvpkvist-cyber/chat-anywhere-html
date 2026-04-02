@@ -72,7 +72,7 @@ header h1{font-size:20px;font-weight:700;color:#34d399}
 </header>
 <div id="messages"></div>
 <div class="input-bar">
-<div class="cmd-hint" id="cmdHint">Commands: /wipe · /timeout #tag mins · /mute #tag mins</div>
+<div class="cmd-hint" id="cmdHint">Commands: /wipe · /timeout #tag mins · /mute #tag mins · /untimeout #tag · /unmute #tag</div>
 <div class="input-row">
 <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="uploadImage(this)">
 <button class="img-btn" onclick="document.getElementById('fileInput').click()">🖼</button>
@@ -189,6 +189,15 @@ if(data&&data.length>0){alert("You are muted until "+new Date(data[0].muted_unti
 return false;
 }
 
+async function getDisplayNameByTag(tag){
+const{data}=await sb.from("messages").select("username").eq("user_tag",tag).order("created_at",{ascending:false}).limit(1).maybeSingle();
+return(data&&data.username&&data.username.trim())||"Unknown user";
+}
+
+async function postSystemMessage(content){
+await sb.from("messages").insert({username:"System",content,user_tag:"0000"});
+}
+
 async function sendMsg(){
 const inp=document.getElementById("msgInput");
 const v=inp.value.trim();
@@ -215,10 +224,23 @@ return;
 
 const cmdMatch=v.match(/^\\/(timeout|mute)\\s+#(\\d{4})\\s+(\\d+)$/);
 if(isAdmin&&cmdMatch){
-const tag=cmdMatch[2];const mins=parseInt(cmdMatch[3]);
+const command=cmdMatch[1];const tag=cmdMatch[2];const mins=parseInt(cmdMatch[3]);
+const targetName=await getDisplayNameByTag(tag);
 const until=new Date(Date.now()+mins*60000).toISOString();
 await sb.from("muted_users").insert({user_tag:tag,muted_until:until});
+await postSystemMessage(targetName+" #"+tag+" was "+(command==="timeout"?"timed out":"muted")+" for "+mins+" minute(s).");
 alert("User #"+tag+" muted for "+mins+" minute(s)");
+inp.value="";
+return;
+}
+
+const unCmdMatch=v.match(/^\\/(untimeout|unmute)\\s+#(\\d{4})$/);
+if(isAdmin&&unCmdMatch){
+const command=unCmdMatch[1];const tag=unCmdMatch[2];
+const targetName=await getDisplayNameByTag(tag);
+await sb.from("muted_users").delete().eq("user_tag",tag);
+await postSystemMessage(targetName+" #"+tag+" "+(command==="untimeout"?"is no longer timed out":"was unmuted")+".");
+alert("User #"+tag+" "+(command==="untimeout"?"timeout removed":"unmuted"));
 inp.value="";
 return;
 }
