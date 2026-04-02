@@ -225,110 +225,139 @@ const ChatRoom = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen max-w-2xl mx-auto">
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
-        <div className="flex items-center gap-2">
-          <h1 className="text-lg font-bold tracking-tight text-primary">💬 OpenChat</h1>
-          {isAdmin && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-destructive text-destructive-foreground font-bold uppercase">Admin</span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {editingName ? (
-            <div className="flex items-center gap-1">
-              <Input
-                value={tempName}
-                onChange={(e) => setTempName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && saveName()}
-                className="h-8 w-32 text-sm bg-muted"
-                autoFocus
-              />
-              <Button size="sm" variant="ghost" onClick={saveName}>OK</Button>
-            </div>
-          ) : (
-            <button
-              onClick={() => { setTempName(username); setEditingName(true); }}
-              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Settings className="w-3.5 h-3.5" />
-              {username}
-              {isAdmin && <span className="text-primary font-mono text-xs">#{userTag.current}</span>}
-            </button>
-          )}
-          <Button size="sm" variant="outline" onClick={handleDownload} className="h-8 gap-1 text-xs">
-            <Download className="w-3.5 h-3.5" />
-            HTML
-          </Button>
-        </div>
-      </header>
+    <div className="min-h-screen px-4 py-4 sm:px-6 sm:py-8">
+      <div className="mx-auto grid h-[calc(100vh-2rem)] max-w-5xl gap-5 sm:h-[calc(100vh-4rem)]">
+        <header className="text-center">
+          <h1 className="text-3xl font-bold uppercase tracking-[0.25em] text-primary drop-shadow-[0_0_14px_hsl(var(--primary)/0.45)] sm:text-5xl">
+            OpenChat
+          </h1>
+        </header>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 chat-scrollbar">
-        {messages.length === 0 && (
-          <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-            No messages yet. Say something!
-          </div>
-        )}
-        {messages.map((msg) => {
-          const isSelf = msg.user_tag === userTag.current;
-          return (
-            <div key={msg.id} className={`flex flex-col ${isSelf ? "items-end" : "items-start"}`}>
-              <span className="text-xs text-muted-foreground mb-1 px-1">
-                {msg.username}
-                {isAdmin && <span className="text-primary font-mono"> #{msg.user_tag}</span>}
-                {" · "}
-                {formatTime(msg.created_at)}
-                {isAdmin && (
-                  <button
-                    onClick={() => deleteMessage(msg.id)}
-                    className="ml-2 text-destructive hover:text-destructive/80 transition-colors inline-flex items-center"
-                    title="Delete message"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                )}
+        <div className="chat-shell flex min-h-0 flex-col overflow-hidden rounded-[1.25rem] px-4 py-4 sm:px-7 sm:py-7">
+          <div className="mb-5 flex flex-wrap items-center gap-3">
+            <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-foreground">
+              <span className="h-2.5 w-2.5 rounded-full bg-primary shadow-[0_0_14px_hsl(var(--primary)/0.65)]" />
+              Live Chat
+            </span>
+            {isAdmin && (
+              <span className="inline-flex items-center rounded-full bg-destructive px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-destructive-foreground">
+                Admin
               </span>
-              <div
-                className={`max-w-[75%] rounded-2xl px-4 py-2 ${
-                  isSelf
-                    ? "bg-primary text-primary-foreground rounded-br-md"
-                    : "bg-secondary text-secondary-foreground rounded-bl-md"
-                }`}
-              >
-                {msg.content && <p className="text-sm break-words">{msg.content}</p>}
-                {msg.image_url && (
-                  <img src={msg.image_url} alt="shared" className="max-w-full rounded-lg mt-1" loading="lazy" />
-                )}
-              </div>
+            )}
+            <div className="ml-auto flex flex-wrap items-center gap-2">
+              {editingName ? (
+                <div className="flex items-center gap-1">
+                  <Input
+                    value={tempName}
+                    onChange={(e) => setTempName(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && saveName()}
+                    className="h-9 w-36 border-primary/20 bg-secondary/80 text-sm"
+                    autoFocus
+                  />
+                  <Button size="sm" variant="ghost" onClick={saveName} className="chat-tab-link h-9 rounded-full px-4 text-xs uppercase tracking-[0.18em] text-foreground">
+                    OK
+                  </Button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setTempName(username);
+                    setEditingName(true);
+                  }}
+                  className="chat-tab-link inline-flex h-10 items-center gap-2 rounded-full px-4 text-xs uppercase tracking-[0.18em] text-foreground transition-transform hover:-translate-y-0.5"
+                >
+                  <Settings className="h-3.5 w-3.5" />
+                  <span>{username}</span>
+                  {isAdmin && <span className="font-mono text-primary">#{userTag.current}</span>}
+                </button>
+              )}
+              <Button size="sm" variant="outline" onClick={handleDownload} className="chat-tab-link h-10 rounded-full border-0 px-4 text-xs uppercase tracking-[0.18em] text-foreground hover:-translate-y-0.5">
+                <Download className="h-3.5 w-3.5" />
+                HTML
+              </Button>
             </div>
-          );
-        })}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Input */}
-      <div className="p-3 border-t border-border bg-card">
-        {isAdmin && (
-          <div className="text-[10px] text-muted-foreground mb-1.5 px-1 font-mono">
-            Commands: /wipe · /timeout #tag mins · /mute #tag mins · /untimeout #tag · /unmute #tag
           </div>
-        )}
-        <div className="flex items-center gap-2">
-          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-          <Button size="icon" variant="ghost" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="shrink-0">
-            <Image className="w-5 h-5" />
-          </Button>
-          <Input
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-            placeholder={isAdmin ? "Type a message or command..." : "Type a message..."}
-            className="bg-muted"
-          />
-          <Button size="icon" onClick={sendMessage} disabled={!newMessage.trim()} className="shrink-0">
-            <Send className="w-5 h-5" />
-          </Button>
+
+          <div className="chat-message-card chat-scrollbar mb-4 flex-1 overflow-y-auto rounded-xl p-4 sm:p-5">
+            {messages.length === 0 && (
+              <div className="flex h-full items-center justify-center text-sm uppercase tracking-[0.18em] text-muted-foreground">
+                No messages yet. Say something.
+              </div>
+            )}
+            <div className="flex flex-col gap-3">
+              {messages.map((msg) => {
+                const isSelf = msg.user_tag === userTag.current;
+                const isSystem = msg.username === "System";
+                return (
+                  <div
+                    key={msg.id}
+                    className={`flex flex-col ${isSystem ? "items-center" : isSelf ? "items-end" : "items-start"}`}
+                  >
+                    {isSystem ? (
+                      <div className="rounded-full border border-accent/30 bg-accent/10 px-4 py-1 text-[0.68rem] uppercase tracking-[0.18em] text-foreground/90">
+                        {msg.content}
+                      </div>
+                    ) : (
+                      <>
+                        <span className="mb-1 px-1 text-xs text-muted-foreground">
+                          {msg.username}
+                          {isAdmin && <span className="font-mono text-primary"> #{msg.user_tag}</span>}
+                          {" · "}
+                          {formatTime(msg.created_at)}
+                          {isAdmin && (
+                            <button
+                              onClick={() => deleteMessage(msg.id)}
+                              className="ml-2 inline-flex items-center text-destructive transition-colors hover:text-destructive/80"
+                              title="Delete message"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          )}
+                        </span>
+                        <div
+                          className={`max-w-[78%] rounded-[1.15rem] px-4 py-3 ${
+                            isSelf
+                              ? "bg-primary text-primary-foreground shadow-[0_0_18px_hsl(var(--primary)/0.22)]"
+                              : "bg-secondary text-secondary-foreground"
+                          } ${isSelf ? "rounded-br-md" : "rounded-bl-md"}`}
+                        >
+                          {msg.content && <p className="text-sm break-words">{msg.content}</p>}
+                          {msg.image_url && (
+                            <img src={msg.image_url} alt="shared" className="mt-2 max-w-full rounded-lg" loading="lazy" />
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div ref={messagesEndRef} />
+          </div>
+
+          <div className="rounded-xl border border-primary/20 bg-foreground/5 p-3">
+            {isAdmin && (
+              <div className="mb-2 px-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                Commands: /wipe · /timeout #tag mins · /mute #tag mins · /untimeout #tag · /unmute #tag
+              </div>
+            )}
+            <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-background/30 p-2">
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+              <Button size="icon" variant="ghost" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="chat-tab-link h-10 w-10 shrink-0 rounded-full text-foreground hover:bg-transparent">
+                <Image className="h-5 w-5" />
+              </Button>
+              <Input
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                placeholder={isAdmin ? "Type a message or command..." : "Type a message..."}
+                className="h-10 border-0 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
+              />
+              <Button size="icon" onClick={sendMessage} disabled={!newMessage.trim()} className="h-10 w-10 shrink-0 rounded-full bg-primary text-primary-foreground shadow-[0_0_18px_hsl(var(--primary)/0.32)] hover:bg-primary/90">
+                <Send className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
