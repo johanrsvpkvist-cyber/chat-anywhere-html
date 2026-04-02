@@ -83,7 +83,7 @@ const ChatRoom = () => {
       .gte("muted_until", new Date().toISOString());
     if (data && data.length > 0) {
       const until = new Date(data[0].muted_until);
-      toast.error(`You are muted until ${until.toLocaleTimeString()}`);
+      toast.error(`Muted until ${until.toLocaleTimeString()}`);
       return true;
     }
     return false;
@@ -117,7 +117,7 @@ const ChatRoom = () => {
       const { error } = await supabase.from("messages").delete().neq("id", "00000000-0000-0000-0000-000000000000");
       if (!error) {
         setMessages([]);
-        toast.success("Chat wiped");
+        toast.success("/wipe executed — chat cleared");
       }
       return true;
     }
@@ -132,7 +132,7 @@ const ChatRoom = () => {
       await postSystemMessage(
         `${targetName} #${tag} was ${command === "timeout" ? "timed out" : "muted"} for ${mins} minute(s).`
       );
-      toast.success(`User #${tag} muted for ${mins} minute(s)`);
+      toast.success(`/${command} executed for ${targetName} #${tag} (${mins} min)`);
       return true;
     }
 
@@ -144,7 +144,7 @@ const ChatRoom = () => {
       await postSystemMessage(
         `${targetName} #${tag} ${command === "untimeout" ? "is no longer timed out" : "was unmuted"}.`
       );
-      toast.success(`User #${tag} ${command === "untimeout" ? "timeout removed" : "unmuted"}`);
+      toast.success(`/${command} executed for ${targetName} #${tag}`);
       return true;
     }
 
@@ -159,7 +159,7 @@ const ChatRoom = () => {
     if (text === ADMIN_PASSWORD) {
       setIsAdmin(true);
       setNewMessage("");
-      toast.success("Admin mode activated 🔓");
+      toast.success("Admin access granted");
       return;
     }
 
@@ -299,7 +299,7 @@ const ChatRoom = () => {
                       </div>
                     ) : (
                       <>
-                        <span className="mb-1 px-1 text-xs text-muted-foreground">
+                         <span className="mb-1 px-1 text-sm font-semibold tracking-[0.04em] text-foreground/82 sm:text-[0.95rem]">
                           {msg.username}
                           {isAdmin && <span className="font-mono text-primary"> #{msg.user_tag}</span>}
                           {" · "}
