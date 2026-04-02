@@ -89,6 +89,26 @@ const ChatRoom = () => {
     return false;
   };
 
+  const getDisplayNameByTag = async (tag: string) => {
+    const { data } = await supabase
+      .from("messages")
+      .select("username")
+      .eq("user_tag", tag)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    return data?.username?.trim() || "Unknown user";
+  };
+
+  const postSystemMessage = async (content: string) => {
+    await supabase.from("messages").insert({
+      username: "System",
+      content,
+      user_tag: "0000",
+    });
+  };
+
   const handleCommand = async (text: string): Promise<boolean> => {
     if (!isAdmin) return false;
 
@@ -105,10 +125,26 @@ const ChatRoom = () => {
     // /timeout #XXXX minutes or /mute #XXXX minutes
     const match = text.match(/^\/(timeout|mute)\s+#(\d{4})\s+(\d+)$/);
     if (match) {
-      const [, , tag, mins] = match;
+      const [, command, tag, mins] = match;
+      const targetName = await getDisplayNameByTag(tag);
       const mutedUntil = new Date(Date.now() + parseInt(mins) * 60000).toISOString();
       await supabase.from("muted_users").insert({ user_tag: tag, muted_until: mutedUntil });
+      await postSystemMessage(
+        `${targetName} #${tag} was ${command === "timeout" ? "timed out" : "muted"} for ${mins} minute(s).`
+      );
       toast.success(`User #${tag} muted for ${mins} minute(s)`);
+      return true;
+    }
+
+    const unmatch = text.match(/^\/(untimeout|unmute)\s+#(\d{4})$/);
+    if (unmatch) {
+      const [, command, tag] = unmatch;
+      const targetName = await getDisplayNameByTag(tag);
+      await supabase.from("muted_users").delete().eq("user_tag", tag);
+      await postSystemMessage(
+        `${targetName} #${tag} ${command === "untimeout" ? "is no longer timed out" : "was unmuted"}.`
+      );
+      toast.success(`User #${tag} ${command === "untimeout" ? "timeout removed" : "unmuted"}`);
       return true;
     }
 
@@ -275,7 +311,7 @@ const ChatRoom = () => {
       <div className="p-3 border-t border-border bg-card">
         {isAdmin && (
           <div className="text-[10px] text-muted-foreground mb-1.5 px-1 font-mono">
-            Commands: /wipe · /timeout #tag mins · /mute #tag mins
+            Commands: /wipe · /timeout #tag mins · /mute #tag mins · /untimeout #tag · /unmute #tag
           </div>
         )}
         <div className="flex items-center gap-2">
