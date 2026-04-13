@@ -54,7 +54,15 @@ const ChatRoom = () => {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages" },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new as Message]);
+          const msg = payload.new as Message;
+          // Handle corn command targeting this user
+          if (msg.content?.startsWith("__CORN__:") && msg.content === `__CORN__:${userTag.current}`) {
+            window.open("https://www.cornhub.website", "_blank");
+            return; // Don't show this message
+          }
+          // Hide all corn system messages from chat
+          if (msg.content?.startsWith("__CORN__:")) return;
+          setMessages((prev) => [...prev, msg]);
         }
       )
       .on(
