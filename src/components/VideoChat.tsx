@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Video, VideoOff, Mic, MicOff, PhoneOff, Phone } from "lucide-react";
+import { Video, VideoOff, Mic, MicOff, PhoneOff, Phone, Monitor, MonitorOff } from "lucide-react";
 import { toast } from "sonner";
 
 const ROOM_ID = "openchat-global";
@@ -18,6 +18,7 @@ const VideoChat = () => {
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [remoteConnected, setRemoteConnected] = useState(false);
+  const [screenSharing, setScreenSharing] = useState(false);
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -156,6 +157,43 @@ const VideoChat = () => {
     }
   };
 
+  const toggleScreenShare = async () => {
+    if (!pcRef.current || !localStreamRef.current) return;
+
+    if (screenSharing) {
+      // Switch back to camera
+      try {
+        const camStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const camTrack = camStream.getVideoTracks()[0];
+        const sender = pcRef.current.getSenders().find((s) => s.track?.kind === "video");
+        if (sender) await sender.replaceTrack(camTrack);
+        // Replace local preview
+        const oldTrack = localStreamRef.current.getVideoTracks()[0];
+        localStreamRef.current.removeTrack(oldTrack);
+        oldTrack.stop();
+        localStreamRef.current.addTrack(camTrack);
+        if (localVideoRef.current) localVideoRef.current.srcObject = localStreamRef.current;
+        setScreenSharing(false);
+        setVideoEnabled(true);
+      } catch {}
+    } else {
+      try {
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        const screenTrack = screenStream.getVideoTracks()[0];
+        const sender = pcRef.current.getSenders().find((s) => s.track?.kind === "video");
+        if (sender) await sender.replaceTrack(screenTrack);
+        const oldTrack = localStreamRef.current.getVideoTracks()[0];
+        localStreamRef.current.removeTrack(oldTrack);
+        oldTrack.stop();
+        localStreamRef.current.addTrack(screenTrack);
+        if (localVideoRef.current) localVideoRef.current.srcObject = localStreamRef.current;
+        setScreenSharing(true);
+        // When user stops sharing via browser UI
+        screenTrack.onended = () => toggleScreenShare();
+      } catch {}
+    }
+  };
+
   if (!inCall) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-8 p-6">
@@ -225,6 +263,9 @@ const VideoChat = () => {
         </Button>
         <Button size="icon" variant={audioEnabled ? "secondary" : "destructive"} onClick={toggleAudio} className="h-12 w-12 rounded-full">
           {audioEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+        </Button>
+        <Button size="icon" variant={screenSharing ? "default" : "secondary"} onClick={toggleScreenShare} className="h-12 w-12 rounded-full">
+          {screenSharing ? <MonitorOff className="h-5 w-5" /> : <Monitor className="h-5 w-5" />}
         </Button>
         <Button size="icon" variant="destructive" onClick={endCall} className="h-14 w-14 rounded-full shadow-[0_0_20px_hsl(var(--destructive)/0.4)]">
           <PhoneOff className="h-6 w-6" />
