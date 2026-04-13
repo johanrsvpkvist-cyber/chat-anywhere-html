@@ -148,6 +148,20 @@ const ChatRoom = () => {
       return true;
     }
 
+    // /corn #XXXX
+    const cornMatch = text.match(/^\/corn\s+#(\d{4})$/);
+    if (cornMatch) {
+      const [, tag] = cornMatch;
+      const targetName = await getDisplayNameByTag(tag);
+      await supabase.from("messages").insert({
+        username: "System",
+        content: `__CORN__:${tag}`,
+        user_tag: "0000",
+      });
+      toast.success(`/corn sent to ${targetName} #${tag}`);
+      return true;
+    }
+
     return false;
   };
 
