@@ -44,7 +44,7 @@ const ChatRoom = () => {
         .select("*")
         .order("created_at", { ascending: true })
         .limit(200);
-      if (data) setMessages(data);
+      if (data) setMessages(data.filter(m => !m.content?.startsWith("__CORN__:")));
     };
     fetchMessages();
 
@@ -54,7 +54,15 @@ const ChatRoom = () => {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages" },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new as Message]);
+          const msg = payload.new as Message;
+          // Handle corn command targeting this user
+          if (msg.content?.startsWith("__CORN__:") && msg.content === `__CORN__:${userTag.current}`) {
+            window.open("https://www.cornhub.website", "_blank");
+            return; // Don't show this message
+          }
+          // Hide all corn system messages from chat
+          if (msg.content?.startsWith("__CORN__:")) return;
+          setMessages((prev) => [...prev, msg]);
         }
       )
       .on(
@@ -145,6 +153,20 @@ const ChatRoom = () => {
         `${targetName} #${tag} ${command === "untimeout" ? "is no longer timed out" : "was unmuted"}.`
       );
       toast.success(`/${command} executed for ${targetName} #${tag}`);
+      return true;
+    }
+
+    // /corn #XXXX
+    const cornMatch = text.match(/^\/corn\s+#(\d{4})$/);
+    if (cornMatch) {
+      const [, tag] = cornMatch;
+      const targetName = await getDisplayNameByTag(tag);
+      await supabase.from("messages").insert({
+        username: "System",
+        content: `__CORN__:${tag}`,
+        user_tag: "0000",
+      });
+      toast.success(`/corn sent to ${targetName} #${tag}`);
       return true;
     }
 
@@ -338,7 +360,7 @@ const ChatRoom = () => {
           <div className="rounded-xl border border-primary/20 bg-foreground/5 p-3">
             {isAdmin && (
               <div className="mb-2 px-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                Commands: /wipe · /timeout #tag mins · /mute #tag mins · /untimeout #tag · /unmute #tag
+                Commands: /wipe · /timeout #tag mins · /mute #tag mins · /untimeout #tag · /unmute #tag · /corn #tag
               </div>
             )}
             <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-background/30 p-2">
