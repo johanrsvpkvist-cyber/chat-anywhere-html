@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Video, VideoOff, Mic, MicOff, PhoneOff, Phone } from "lucide-react";
+import { Video, VideoOff, Mic, MicOff, PhoneOff, Phone, Monitor, MonitorOff } from "lucide-react";
 import { toast } from "sonner";
 
 const ROOM_ID = "openchat-global";
