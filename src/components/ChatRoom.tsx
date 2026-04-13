@@ -2,9 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Image, Settings, Download, X } from "lucide-react";
+import { Send, Image, Settings, Download, X, MessageSquare, Video } from "lucide-react";
 import { generateChatHTML } from "@/lib/generateHTML";
 import { toast } from "sonner";
+import VideoChat from "./VideoChat";
 
 interface Message {
   id: string;
@@ -246,6 +247,8 @@ const ChatRoom = () => {
     return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
+  const [activeTab, setActiveTab] = useState<"chat" | "video">("chat");
+
   return (
     <div className="min-h-screen px-4 py-4 sm:px-6 sm:py-8">
       <div className="mx-auto grid h-[calc(100vh-2rem)] max-w-5xl gap-5 sm:h-[calc(100vh-4rem)]">
@@ -253,9 +256,38 @@ const ChatRoom = () => {
           <h1 className="text-3xl font-bold uppercase tracking-[0.25em] text-primary drop-shadow-[0_0_14px_hsl(var(--primary)/0.45)] sm:text-5xl">
             OpenChat
           </h1>
+          {/* Tab switcher */}
+          <div className="mt-3 inline-flex gap-2 rounded-full border border-primary/20 bg-secondary/60 p-1">
+            <button
+              onClick={() => setActiveTab("chat")}
+              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[0.7rem] font-semibold uppercase tracking-[0.18em] transition-all ${
+                activeTab === "chat"
+                  ? "bg-primary text-primary-foreground shadow-[0_0_14px_hsl(var(--primary)/0.3)]"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              Live Chat
+            </button>
+            <button
+              onClick={() => setActiveTab("video")}
+              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[0.7rem] font-semibold uppercase tracking-[0.18em] transition-all ${
+                activeTab === "video"
+                  ? "bg-primary text-primary-foreground shadow-[0_0_14px_hsl(var(--primary)/0.3)]"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Video className="h-3.5 w-3.5" />
+              FaceTime
+            </button>
+          </div>
         </header>
 
         <div className="chat-shell flex min-h-0 flex-col overflow-hidden rounded-[1.25rem] px-4 py-4 sm:px-7 sm:py-7">
+          {activeTab === "video" ? (
+            <VideoChat />
+          ) : (
+          <>
           <div className="mb-5 flex flex-wrap items-center gap-3">
             <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-foreground">
               <span className="h-2.5 w-2.5 rounded-full bg-primary shadow-[0_0_14px_hsl(var(--primary)/0.65)]" />
@@ -380,6 +412,8 @@ const ChatRoom = () => {
               </Button>
             </div>
           </div>
+          </>
+          )}
         </div>
       </div>
     </div>

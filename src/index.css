@@ -117,4 +117,8 @@
     background: hsl(var(--background) / 0.42);
     border: 1px solid hsl(var(--primary) / 0.08);
   }
+
+  .mirror {
+    transform: scaleX(-1);
+  }
 }
