@@ -284,10 +284,8 @@ const ChatRoom = () => {
         </header>
 
         <div className="chat-shell flex min-h-0 flex-col overflow-hidden rounded-[1.25rem] px-4 py-4 sm:px-7 sm:py-7">
-          {activeTab === "video" ? (
-            <VideoChat />
-          ) : (
-          <>
+          <VideoChat visible={activeTab === "video"} username={username} />
+          <div className={activeTab === "chat" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
           <div className="mb-5 flex flex-wrap items-center gap-3">
             <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-foreground">
               <span className="h-2.5 w-2.5 rounded-full bg-primary shadow-[0_0_14px_hsl(var(--primary)/0.65)]" />
@@ -412,8 +410,7 @@ const ChatRoom = () => {
               </Button>
             </div>
           </div>
-          </>
-          )}
+          </div>
         </div>
       </div>
     </div>
