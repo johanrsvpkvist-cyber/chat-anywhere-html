@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Video, VideoOff, Mic, MicOff, PhoneOff, Phone, Monitor, MonitorOff } from "lucide-react";
+import { Video, VideoOff, Mic, MicOff, PhoneOff, Phone, Monitor, MonitorOff, VolumeX, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 
 const ROOM_ID = "openchat-global";
@@ -13,12 +13,18 @@ const ICE_SERVERS: RTCConfiguration = {
   ],
 };
 
-const VideoChat = () => {
+interface VideoChatProps {
+  visible: boolean;
+  username: string;
+}
+
+const VideoChat = ({ visible, username }: VideoChatProps) => {
   const [inCall, setInCall] = useState(false);
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [remoteConnected, setRemoteConnected] = useState(false);
   const [screenSharing, setScreenSharing] = useState(false);
+  const [remoteMuted, setRemoteMuted] = useState(false);
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -39,6 +45,7 @@ const VideoChat = () => {
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
     setRemoteConnected(false);
+    setScreenSharing(false);
   }, []);
 
   useEffect(() => () => cleanup(), [cleanup]);
@@ -61,11 +68,7 @@ const VideoChat = () => {
         channelRef.current.send({
           type: "broadcast",
           event: "signal",
-          payload: {
-            type: "ice-candidate",
-            data: e.candidate.toJSON(),
-            from: myIdRef.current,
-          },
+          payload: { type: "ice-candidate", data: e.candidate.toJSON(), from: myIdRef.current },
         });
       }
     };
@@ -108,11 +111,8 @@ const VideoChat = () => {
         } else if (payload.type === "answer") {
           await pc.setRemoteDescription(new RTCSessionDescription(payload.data));
         } else if (payload.type === "ice-candidate") {
-          try {
-            await pc.addIceCandidate(new RTCIceCandidate(payload.data));
-          } catch {}
+          try { await pc.addIceCandidate(new RTCIceCandidate(payload.data)); } catch {}
         } else if (payload.type === "join") {
-          // Someone new joined — send them an offer
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
           channel.send({
@@ -124,7 +124,6 @@ const VideoChat = () => {
       })
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
-          // Announce we joined so existing peers send offers
           channel.send({
             type: "broadcast",
             event: "signal",
@@ -139,6 +138,8 @@ const VideoChat = () => {
   const endCall = () => {
     cleanup();
     setInCall(false);
+    setVideoEnabled(true);
+    setAudioEnabled(true);
   };
 
   const toggleVideo = () => {
@@ -157,17 +158,22 @@ const VideoChat = () => {
     }
   };
 
+  const toggleRemoteMute = () => {
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.muted = !remoteVideoRef.current.muted;
+      setRemoteMuted(!remoteMuted);
+    }
+  };
+
   const toggleScreenShare = async () => {
     if (!pcRef.current || !localStreamRef.current) return;
 
     if (screenSharing) {
-      // Switch back to camera
       try {
         const camStream = await navigator.mediaDevices.getUserMedia({ video: true });
         const camTrack = camStream.getVideoTracks()[0];
         const sender = pcRef.current.getSenders().find((s) => s.track?.kind === "video");
         if (sender) await sender.replaceTrack(camTrack);
-        // Replace local preview
         const oldTrack = localStreamRef.current.getVideoTracks()[0];
         localStreamRef.current.removeTrack(oldTrack);
         oldTrack.stop();
@@ -188,89 +194,99 @@ const VideoChat = () => {
         localStreamRef.current.addTrack(screenTrack);
         if (localVideoRef.current) localVideoRef.current.srcObject = localStreamRef.current;
         setScreenSharing(true);
-        // When user stops sharing via browser UI
         screenTrack.onended = () => toggleScreenShare();
       } catch {}
     }
   };
 
-  if (!inCall) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-8 p-6">
-        <div className="text-center">
-          <div className="mb-2 inline-flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 shadow-[0_0_30px_hsl(var(--primary)/0.2)]">
-            <Video className="h-10 w-10 text-primary" />
-          </div>
-          <h2 className="mt-4 font-[var(--font-heading)] text-2xl font-bold uppercase tracking-[0.15em] text-foreground">
-            FaceTime
-          </h2>
-          <p className="mt-1 text-sm tracking-wide text-muted-foreground">
-            Jump into the global video call
-          </p>
-        </div>
-
-        <Button
-          onClick={joinCall}
-          className="h-12 rounded-full bg-primary px-8 text-primary-foreground shadow-[0_0_18px_hsl(var(--primary)/0.32)] hover:bg-primary/90"
-        >
-          <Phone className="mr-2 h-5 w-5" />
-          Join Call
-        </Button>
-      </div>
-    );
-  }
-
+  // Wrapper div always rendered (never unmounted), visibility controlled by `visible`
   return (
-    <div className="flex h-full flex-col">
-      {/* Status bar */}
-      <div className="flex items-center justify-center gap-2 px-4 py-2">
-        <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-foreground">
-          <span
-            className={`h-2.5 w-2.5 rounded-full ${
-              remoteConnected
-                ? "bg-[hsl(var(--glow-green))] shadow-[0_0_14px_hsl(var(--glow-green)/0.65)]"
-                : "bg-primary shadow-[0_0_14px_hsl(var(--primary)/0.65)] animate-pulse"
-            }`}
-          />
-          {remoteConnected ? "Connected" : "Waiting for someone..."}
-        </span>
-      </div>
+    <div className={`flex h-full flex-col ${visible ? "" : "hidden"}`}>
+      {!inCall ? (
+        <div className="flex h-full flex-col items-center justify-center gap-8 p-6">
+          <div className="text-center">
+            <div className="mb-2 inline-flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 shadow-[0_0_30px_hsl(var(--primary)/0.2)]">
+              <Video className="h-10 w-10 text-primary" />
+            </div>
+            <h2 className="mt-4 font-[var(--font-heading)] text-2xl font-bold uppercase tracking-[0.15em] text-foreground">
+              FaceTime
+            </h2>
+            <p className="mt-1 text-sm tracking-wide text-muted-foreground">
+              Jump into the global video call
+            </p>
+          </div>
+          <Button onClick={joinCall} className="h-12 rounded-full bg-primary px-8 text-primary-foreground shadow-[0_0_18px_hsl(var(--primary)/0.32)] hover:bg-primary/90">
+            <Phone className="mr-2 h-5 w-5" />
+            Join Call
+          </Button>
+        </div>
+      ) : (
+        <>
+          {/* Status bar */}
+          <div className="flex items-center justify-center gap-2 px-4 py-2">
+            <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-foreground">
+              <span className={`h-2.5 w-2.5 rounded-full ${remoteConnected ? "bg-[hsl(var(--glow-green))] shadow-[0_0_14px_hsl(var(--glow-green)/0.65)]" : "bg-primary shadow-[0_0_14px_hsl(var(--primary)/0.65)] animate-pulse"}`} />
+              {remoteConnected ? "Connected" : "Waiting for someone..."}
+            </span>
+          </div>
 
-      {/* Video area */}
-      <div className="relative flex-1 overflow-hidden rounded-xl bg-background/40 border border-primary/8">
-        <video ref={remoteVideoRef} autoPlay playsInline className="h-full w-full object-cover" />
-        {!remoteConnected && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center">
-              <div className="mb-3 h-12 w-12 mx-auto rounded-full border-2 border-primary/40 border-t-primary animate-spin" />
-              <p className="text-sm uppercase tracking-[0.18em] text-muted-foreground">
-                Waiting for someone to join...
-              </p>
+          {/* Video area */}
+          <div className="relative flex-1 overflow-hidden rounded-xl bg-background/40 border border-primary/8">
+            {/* Remote video */}
+            <video ref={remoteVideoRef} autoPlay playsInline className="h-full w-full object-cover" />
+            {!remoteConnected && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="mb-3 h-12 w-12 mx-auto rounded-full border-2 border-primary/40 border-t-primary animate-spin" />
+                  <p className="text-sm uppercase tracking-[0.18em] text-muted-foreground">Waiting for someone to join...</p>
+                </div>
+              </div>
+            )}
+
+            {/* Mute remote button */}
+            {remoteConnected && (
+              <button
+                onClick={toggleRemoteMute}
+                className="absolute top-3 right-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-background/60 backdrop-blur-sm border border-primary/20 text-foreground transition-colors hover:bg-background/80"
+                title={remoteMuted ? "Unmute remote" : "Mute remote"}
+              >
+                {remoteMuted ? <VolumeX className="h-4 w-4 text-destructive" /> : <Volume2 className="h-4 w-4" />}
+              </button>
+            )}
+
+            {/* Local video PiP */}
+            <div className="absolute bottom-4 right-4 h-32 w-24 overflow-hidden rounded-xl border-2 border-primary/30 shadow-lg sm:h-44 sm:w-32">
+              {videoEnabled ? (
+                <video ref={localVideoRef} autoPlay playsInline muted className="h-full w-full object-cover mirror" />
+              ) : (
+                <>
+                  <video ref={localVideoRef} autoPlay playsInline muted className="hidden" />
+                  <div className="flex h-full w-full flex-col items-center justify-center bg-muted">
+                    <VideoOff className="mb-1 h-5 w-5 text-muted-foreground" />
+                    <span className="text-[0.6rem] font-semibold uppercase tracking-wider text-muted-foreground">{username}</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
-        )}
 
-        {/* Local video (PiP) */}
-        <div className="absolute bottom-4 right-4 h-32 w-24 overflow-hidden rounded-xl border-2 border-primary/30 shadow-lg sm:h-44 sm:w-32">
-          <video ref={localVideoRef} autoPlay playsInline muted className="h-full w-full object-cover mirror" />
-        </div>
-      </div>
-
-      {/* Controls */}
-      <div className="flex items-center justify-center gap-3 py-4">
-        <Button size="icon" variant={videoEnabled ? "secondary" : "destructive"} onClick={toggleVideo} className="h-12 w-12 rounded-full">
-          {videoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
-        </Button>
-        <Button size="icon" variant={audioEnabled ? "secondary" : "destructive"} onClick={toggleAudio} className="h-12 w-12 rounded-full">
-          {audioEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
-        </Button>
-        <Button size="icon" variant={screenSharing ? "default" : "secondary"} onClick={toggleScreenShare} className="h-12 w-12 rounded-full">
-          {screenSharing ? <MonitorOff className="h-5 w-5" /> : <Monitor className="h-5 w-5" />}
-        </Button>
-        <Button size="icon" variant="destructive" onClick={endCall} className="h-14 w-14 rounded-full shadow-[0_0_20px_hsl(var(--destructive)/0.4)]">
-          <PhoneOff className="h-6 w-6" />
-        </Button>
-      </div>
+          {/* Controls */}
+          <div className="flex items-center justify-center gap-3 py-4">
+            <Button size="icon" variant={videoEnabled ? "secondary" : "destructive"} onClick={toggleVideo} className="h-12 w-12 rounded-full">
+              {videoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+            </Button>
+            <Button size="icon" variant={audioEnabled ? "secondary" : "destructive"} onClick={toggleAudio} className="h-12 w-12 rounded-full">
+              {audioEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+            </Button>
+            <Button size="icon" variant={screenSharing ? "default" : "secondary"} onClick={toggleScreenShare} className="h-12 w-12 rounded-full">
+              {screenSharing ? <MonitorOff className="h-5 w-5" /> : <Monitor className="h-5 w-5" />}
+            </Button>
+            <Button size="icon" variant="destructive" onClick={endCall} className="h-14 w-14 rounded-full shadow-[0_0_20px_hsl(var(--destructive)/0.4)]">
+              <PhoneOff className="h-6 w-6" />
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 };
