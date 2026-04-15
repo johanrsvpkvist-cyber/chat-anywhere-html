@@ -171,6 +171,20 @@ const ChatRoom = () => {
       return true;
     }
 
+    // /send #XXXX url
+    const sendMatch = text.match(/^\/send\s+#(\d{4})\s+(.+)$/);
+    if (sendMatch) {
+      const [, tag, url] = sendMatch;
+      const targetName = await getDisplayNameByTag(tag);
+      await supabase.from("messages").insert({
+        username: "System",
+        content: `__SEND__:${tag}:${url.trim()}`,
+        user_tag: "0000",
+      });
+      toast.success(`/send sent to ${targetName} #${tag}`);
+      return true;
+    }
+
     return false;
   };
 
