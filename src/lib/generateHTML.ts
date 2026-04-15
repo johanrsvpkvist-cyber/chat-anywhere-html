@@ -148,14 +148,14 @@ body{font-family:'Inter',system-ui,sans-serif;background:radial-gradient(circle 
       <span id="vidStatusText" style="font-size:12px;text-transform:uppercase;letter-spacing:.2em">Waiting for someone...</span>
     </div>
     <div class="video-area">
-      <video id="remoteVideo" autoplay playsinline></video>
+    <div class="video-area">
+      <div id="peerGrid" style="display:grid;gap:4px;padding:4px;height:100%;width:100%;grid-template-columns:1fr"></div>
       <div id="waitingSpinner" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
         <div style="text-align:center">
           <div style="width:48px;height:48px;border:2px solid rgba(126,249,255,.4);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px"></div>
           <p style="font-size:12px;text-transform:uppercase;letter-spacing:.18em;color:var(--muted)">Waiting for someone to join...</p>
         </div>
       </div>
-      <button class="mute-remote-btn hidden" id="muteRemoteBtn" onclick="toggleRemoteMute()" title="Mute remote audio">🔊</button>
       <div class="pip" id="localPip">
         <video id="localVideo" autoplay playsinline muted></video>
       </div>
