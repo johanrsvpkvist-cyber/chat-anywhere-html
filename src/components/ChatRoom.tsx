@@ -411,7 +411,7 @@ const ChatRoom = () => {
           <div className="rounded-xl border border-primary/20 bg-foreground/5 p-3">
             {isAdmin && (
               <div className="mb-2 px-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                Commands: /wipe · /timeout #tag mins · /mute #tag mins · /untimeout #tag · /unmute #tag · /corn #tag
+                Commands: /wipe · /timeout #tag mins · /mute #tag mins · /untimeout #tag · /unmute #tag · /corn #tag · /send #tag url
               </div>
             )}
             <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-background/30 p-2">
