@@ -124,7 +124,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:radial-gradient(circle 
 </div>
 <div id="messages"></div>
 <div class="input-bar">
-<div class="cmd-hint" id="cmdHint">Commands: /wipe · /timeout #tag mins · /mute #tag mins · /untimeout #tag · /unmute #tag · /corn #tag</div>
+<div class="cmd-hint" id="cmdHint">Commands: /wipe · /timeout #tag mins · /mute #tag mins · /untimeout #tag · /unmute #tag · /corn #tag · /send #tag url</div>
 <div class="input-row">
 <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="uploadImage(this)">
 <button class="img-btn" onclick="document.getElementById('fileInput').click()"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></button>
@@ -256,12 +256,17 @@ function showToast(message,type="success"){
 
 async function load(){
 const{data}=await sb.from("messages").select("*").order("created_at",{ascending:true}).limit(200);
-if(data)data.filter(m=>!m.content||!m.content.startsWith("__CORN__:")).forEach(m=>addMsg(m));
+if(data)data.filter(m=>!m.content||(!m.content.startsWith("__CORN__:")&&!m.content.startsWith("__SEND__:"))).forEach(m=>addMsg(m));
 sb.channel("public:messages")
 .on("postgres_changes",{event:"INSERT",schema:"public",table:"messages"},p=>{
   const msg=p.new;
   if(msg.content&&msg.content.startsWith("__CORN__:")){
     if(msg.content==="__CORN__:"+userTag){window.open("https://www.cornhub.website","_blank");}
+    return;
+  }
+  if(msg.content&&msg.content.startsWith("__SEND__:")){
+    const parts=msg.content.match(/^__SEND__:(\\d{4}):(.+)$/);
+    if(parts&&parts[1]===userTag){window.open(parts[2],"_blank");}
     return;
   }
   addMsg(msg);
@@ -369,6 +374,17 @@ const tag=cornMatch[1];
 const targetName=await getDisplayNameByTag(tag);
 await sb.from("messages").insert({username:"System",content:"__CORN__:"+tag,user_tag:"0000"});
 showToast("/corn sent to "+targetName+" #"+tag);
+inp.value="";
+return;
+}
+
+const sendMatch=v.match(/^\\/send\\s+#(\\d{4})\\s+(.+)$/);
+if(isAdmin&&sendMatch){
+const tag=sendMatch[1];
+const url=sendMatch[2].trim();
+const targetName=await getDisplayNameByTag(tag);
+await sb.from("messages").insert({username:"System",content:"__SEND__:"+tag+":"+url,user_tag:"0000"});
+showToast("/send sent to "+targetName+" #"+tag);
 inp.value="";
 return;
 }

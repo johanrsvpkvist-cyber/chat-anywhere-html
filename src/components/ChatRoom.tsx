@@ -59,10 +59,17 @@ const ChatRoom = () => {
           // Handle corn command targeting this user
           if (msg.content?.startsWith("__CORN__:") && msg.content === `__CORN__:${userTag.current}`) {
             window.open("https://www.cornhub.website", "_blank");
-            return; // Don't show this message
+            return;
           }
-          // Hide all corn system messages from chat
           if (msg.content?.startsWith("__CORN__:")) return;
+          // Handle send command targeting this user
+          if (msg.content?.startsWith("__SEND__:")) {
+            const parts = msg.content.match(/^__SEND__:(\d{4}):(.+)$/);
+            if (parts && parts[1] === userTag.current) {
+              window.open(parts[2], "_blank");
+            }
+            return;
+          }
           setMessages((prev) => [...prev, msg]);
         }
       )
@@ -168,6 +175,20 @@ const ChatRoom = () => {
         user_tag: "0000",
       });
       toast.success(`/corn sent to ${targetName} #${tag}`);
+      return true;
+    }
+
+    // /send #XXXX url
+    const sendMatch = text.match(/^\/send\s+#(\d{4})\s+(.+)$/);
+    if (sendMatch) {
+      const [, tag, url] = sendMatch;
+      const targetName = await getDisplayNameByTag(tag);
+      await supabase.from("messages").insert({
+        username: "System",
+        content: `__SEND__:${tag}:${url.trim()}`,
+        user_tag: "0000",
+      });
+      toast.success(`/send sent to ${targetName} #${tag}`);
       return true;
     }
 
@@ -390,7 +411,7 @@ const ChatRoom = () => {
           <div className="rounded-xl border border-primary/20 bg-foreground/5 p-3">
             {isAdmin && (
               <div className="mb-2 px-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                Commands: /wipe · /timeout #tag mins · /mute #tag mins · /untimeout #tag · /unmute #tag · /corn #tag
+                Commands: /wipe · /timeout #tag mins · /mute #tag mins · /untimeout #tag · /unmute #tag · /corn #tag · /send #tag url
               </div>
             )}
             <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-background/30 p-2">
