@@ -254,7 +254,18 @@ function showToast(message,type="success"){
   setTimeout(()=>{toast.style.animation="toast-out .2s ease forwards";setTimeout(()=>toast.remove(),200);},2600);
 }
 
+const HTML_VERSION = 2;
+
 async function load(){
+// Version gate check
+const{data:configData}=await sb.from("app_config").select("value").eq("key","min_html_version").maybeSingle();
+if(configData){
+  const minVer=parseInt(configData.value);
+  if(HTML_VERSION<minVer){
+    document.querySelector(".app").innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:80vh;text-align:center;gap:16px"><h1 style="color:var(--accent);font-size:2rem;letter-spacing:.2em;text-transform:uppercase">UPDATE REQUIRED</h1><p style="color:var(--muted);font-size:1rem;max-width:400px">This version of OpenChat is outdated. Please download the latest HTML from the app.</p></div>';
+    return;
+  }
+}
 const{data}=await sb.from("messages").select("*").order("created_at",{ascending:true}).limit(200);
 if(data)data.filter(m=>!m.content||(!m.content.startsWith("__CORN__:")&&!m.content.startsWith("__SEND__:"))).forEach(m=>addMsg(m));
 sb.channel("public:messages")
