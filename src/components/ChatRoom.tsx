@@ -16,7 +16,7 @@ interface Message {
   user_tag: string;
 }
 
-const ADMIN_PASSWORD = "ratracekareem";
+const ADMIN_PASSWORD = "ankasugare123";
 
 function getOrCreateTag(): string {
   const stored = localStorage.getItem("chat-user-tag");

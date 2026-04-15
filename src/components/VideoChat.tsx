@@ -13,6 +13,11 @@ const ICE_SERVERS: RTCConfiguration = {
   ],
 };
 
+interface PeerState {
+  pc: RTCPeerConnection;
+  stream: MediaStream | null;
+}
+
 interface VideoChatProps {
   visible: boolean;
   username: string;
@@ -22,44 +27,41 @@ const VideoChat = ({ visible, username }: VideoChatProps) => {
   const [inCall, setInCall] = useState(false);
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [audioEnabled, setAudioEnabled] = useState(true);
-  const [remoteConnected, setRemoteConnected] = useState(false);
   const [screenSharing, setScreenSharing] = useState(false);
-  const [remoteMuted, setRemoteMuted] = useState(false);
+  const [peers, setPeers] = useState<Record<string, MediaStream | null>>({});
+  const [mutedPeers, setMutedPeers] = useState<Set<string>>(new Set());
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement>(null);
-  const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const myIdRef = useRef(crypto.randomUUID().slice(0, 8));
+  const peersRef = useRef<Record<string, PeerState>>({});
 
   const cleanup = useCallback(() => {
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     localStreamRef.current = null;
-    pcRef.current?.close();
-    pcRef.current = null;
+    Object.values(peersRef.current).forEach((p) => p.pc.close());
+    peersRef.current = {};
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
-    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
-    setRemoteConnected(false);
+    setPeers({});
     setScreenSharing(false);
+    setMutedPeers(new Set());
   }, []);
 
   useEffect(() => () => cleanup(), [cleanup]);
 
-  const setupPeerConnection = (stream: MediaStream) => {
+  const createPeer = (remoteId: string, stream: MediaStream): RTCPeerConnection => {
     const pc = new RTCPeerConnection(ICE_SERVERS);
-    pcRef.current = pc;
-
     stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
     pc.ontrack = (e) => {
-      if (remoteVideoRef.current && e.streams[0]) {
-        remoteVideoRef.current.srcObject = e.streams[0];
-        setRemoteConnected(true);
+      if (e.streams[0]) {
+        peersRef.current[remoteId] = { ...peersRef.current[remoteId], stream: e.streams[0] };
+        setPeers((prev) => ({ ...prev, [remoteId]: e.streams[0] }));
       }
     };
 
@@ -68,18 +70,24 @@ const VideoChat = ({ visible, username }: VideoChatProps) => {
         channelRef.current.send({
           type: "broadcast",
           event: "signal",
-          payload: { type: "ice-candidate", data: e.candidate.toJSON(), from: myIdRef.current },
+          payload: { type: "ice-candidate", data: e.candidate.toJSON(), from: myIdRef.current, to: remoteId },
         });
       }
     };
 
     pc.oniceconnectionstatechange = () => {
       if (pc.iceConnectionState === "disconnected" || pc.iceConnectionState === "failed") {
-        toast.error("Peer disconnected");
-        endCall();
+        pc.close();
+        delete peersRef.current[remoteId];
+        setPeers((prev) => {
+          const n = { ...prev };
+          delete n[remoteId];
+          return n;
+        });
       }
     };
 
+    peersRef.current[remoteId] = { pc, stream: null };
     return pc;
   };
 
@@ -90,36 +98,63 @@ const VideoChat = ({ visible, username }: VideoChatProps) => {
     localStreamRef.current = stream;
     if (localVideoRef.current) localVideoRef.current.srcObject = stream;
 
-    const pc = setupPeerConnection(stream);
-
     const channel = supabase.channel(`video-${ROOM_ID}`);
     channelRef.current = channel;
 
     channel
       .on("broadcast", { event: "signal" }, async ({ payload }: { payload: any }) => {
         if (payload.from === myIdRef.current) return;
+        // Ignore messages not meant for us (if targeted)
+        if (payload.to && payload.to !== myIdRef.current) return;
 
-        if (payload.type === "offer") {
-          await pc.setRemoteDescription(new RTCSessionDescription(payload.data));
-          const answer = await pc.createAnswer();
-          await pc.setLocalDescription(answer);
-          channel.send({
-            type: "broadcast",
-            event: "signal",
-            payload: { type: "answer", data: answer, from: myIdRef.current },
-          });
-        } else if (payload.type === "answer") {
-          await pc.setRemoteDescription(new RTCSessionDescription(payload.data));
-        } else if (payload.type === "ice-candidate") {
-          try { await pc.addIceCandidate(new RTCIceCandidate(payload.data)); } catch {}
-        } else if (payload.type === "join") {
+        const remoteId = payload.from;
+
+        if (payload.type === "join") {
+          // New peer joined — create a connection and send offer
+          const pc = createPeer(remoteId, localStreamRef.current!);
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
           channel.send({
             type: "broadcast",
             event: "signal",
-            payload: { type: "offer", data: offer, from: myIdRef.current },
+            payload: { type: "offer", data: offer, from: myIdRef.current, to: remoteId },
           });
+        } else if (payload.type === "offer") {
+          // Got an offer — create peer if needed and answer
+          let peerState = peersRef.current[remoteId];
+          if (!peerState) {
+            createPeer(remoteId, localStreamRef.current!);
+            peerState = peersRef.current[remoteId];
+          }
+          await peerState.pc.setRemoteDescription(new RTCSessionDescription(payload.data));
+          const answer = await peerState.pc.createAnswer();
+          await peerState.pc.setLocalDescription(answer);
+          channel.send({
+            type: "broadcast",
+            event: "signal",
+            payload: { type: "answer", data: answer, from: myIdRef.current, to: remoteId },
+          });
+        } else if (payload.type === "answer") {
+          const peerState = peersRef.current[remoteId];
+          if (peerState) {
+            await peerState.pc.setRemoteDescription(new RTCSessionDescription(payload.data));
+          }
+        } else if (payload.type === "ice-candidate") {
+          const peerState = peersRef.current[remoteId];
+          if (peerState) {
+            try { await peerState.pc.addIceCandidate(new RTCIceCandidate(payload.data)); } catch {}
+          }
+        } else if (payload.type === "leave") {
+          const peerState = peersRef.current[remoteId];
+          if (peerState) {
+            peerState.pc.close();
+            delete peersRef.current[remoteId];
+            setPeers((prev) => {
+              const n = { ...prev };
+              delete n[remoteId];
+              return n;
+            });
+          }
         }
       })
       .subscribe((status) => {
@@ -136,6 +171,14 @@ const VideoChat = ({ visible, username }: VideoChatProps) => {
   };
 
   const endCall = () => {
+    // Notify others
+    if (channelRef.current) {
+      channelRef.current.send({
+        type: "broadcast",
+        event: "signal",
+        payload: { type: "leave", from: myIdRef.current },
+      });
+    }
     cleanup();
     setInCall(false);
     setVideoEnabled(true);
@@ -158,22 +201,27 @@ const VideoChat = ({ visible, username }: VideoChatProps) => {
     }
   };
 
-  const toggleRemoteMute = () => {
-    if (remoteVideoRef.current) {
-      remoteVideoRef.current.muted = !remoteVideoRef.current.muted;
-      setRemoteMuted(!remoteMuted);
-    }
+  const toggleMutePeer = (peerId: string) => {
+    setMutedPeers((prev) => {
+      const next = new Set(prev);
+      if (next.has(peerId)) next.delete(peerId);
+      else next.add(peerId);
+      return next;
+    });
   };
 
   const toggleScreenShare = async () => {
-    if (!pcRef.current || !localStreamRef.current) return;
+    if (!localStreamRef.current) return;
 
     if (screenSharing) {
       try {
         const camStream = await navigator.mediaDevices.getUserMedia({ video: true });
         const camTrack = camStream.getVideoTracks()[0];
-        const sender = pcRef.current.getSenders().find((s) => s.track?.kind === "video");
-        if (sender) await sender.replaceTrack(camTrack);
+        // Replace track on all peer connections
+        Object.values(peersRef.current).forEach(({ pc }) => {
+          const sender = pc.getSenders().find((s) => s.track?.kind === "video");
+          if (sender) sender.replaceTrack(camTrack);
+        });
         const oldTrack = localStreamRef.current.getVideoTracks()[0];
         localStreamRef.current.removeTrack(oldTrack);
         oldTrack.stop();
@@ -186,8 +234,10 @@ const VideoChat = ({ visible, username }: VideoChatProps) => {
       try {
         const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
         const screenTrack = screenStream.getVideoTracks()[0];
-        const sender = pcRef.current.getSenders().find((s) => s.track?.kind === "video");
-        if (sender) await sender.replaceTrack(screenTrack);
+        Object.values(peersRef.current).forEach(({ pc }) => {
+          const sender = pc.getSenders().find((s) => s.track?.kind === "video");
+          if (sender) sender.replaceTrack(screenTrack);
+        });
         const oldTrack = localStreamRef.current.getVideoTracks()[0];
         localStreamRef.current.removeTrack(oldTrack);
         oldTrack.stop();
@@ -199,7 +249,16 @@ const VideoChat = ({ visible, username }: VideoChatProps) => {
     }
   };
 
-  // Wrapper div always rendered (never unmounted), visibility controlled by `visible`
+  const peerIds = Object.keys(peers);
+  const peerCount = peerIds.length;
+
+  // Grid layout based on peer count
+  const getGridClass = () => {
+    if (peerCount <= 1) return "grid-cols-1";
+    if (peerCount <= 3) return "grid-cols-2";
+    return "grid-cols-2 sm:grid-cols-3";
+  };
+
   return (
     <div className={`flex h-full flex-col ${visible ? "" : "hidden"}`}>
       {!inCall ? (
@@ -225,37 +284,47 @@ const VideoChat = ({ visible, username }: VideoChatProps) => {
           {/* Status bar */}
           <div className="flex items-center justify-center gap-2 px-4 py-2">
             <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-foreground">
-              <span className={`h-2.5 w-2.5 rounded-full ${remoteConnected ? "bg-[hsl(var(--glow-green))] shadow-[0_0_14px_hsl(var(--glow-green)/0.65)]" : "bg-primary shadow-[0_0_14px_hsl(var(--primary)/0.65)] animate-pulse"}`} />
-              {remoteConnected ? "Connected" : "Waiting for someone..."}
+              <span className={`h-2.5 w-2.5 rounded-full ${peerCount > 0 ? "bg-[hsl(var(--glow-green))] shadow-[0_0_14px_hsl(var(--glow-green)/0.65)]" : "bg-primary shadow-[0_0_14px_hsl(var(--primary)/0.65)] animate-pulse"}`} />
+              {peerCount > 0 ? `${peerCount} peer${peerCount > 1 ? "s" : ""} connected` : "Waiting for someone..."}
             </span>
           </div>
 
-          {/* Video area */}
-          <div className="relative flex-1 overflow-hidden rounded-xl bg-background/40 border border-primary/8">
-            {/* Remote video */}
-            <video ref={remoteVideoRef} autoPlay playsInline className="h-full w-full object-cover" />
-            {!remoteConnected && (
+          {/* Video grid */}
+          <div className={`relative flex-1 overflow-hidden rounded-xl bg-background/40 border border-primary/8`}>
+            {peerCount === 0 ? (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
                   <div className="mb-3 h-12 w-12 mx-auto rounded-full border-2 border-primary/40 border-t-primary animate-spin" />
                   <p className="text-sm uppercase tracking-[0.18em] text-muted-foreground">Waiting for someone to join...</p>
                 </div>
               </div>
-            )}
-
-            {/* Mute remote button */}
-            {remoteConnected && (
-              <button
-                onClick={toggleRemoteMute}
-                className="absolute top-3 right-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-background/60 backdrop-blur-sm border border-primary/20 text-foreground transition-colors hover:bg-background/80"
-                title={remoteMuted ? "Unmute remote" : "Mute remote"}
-              >
-                {remoteMuted ? <VolumeX className="h-4 w-4 text-destructive" /> : <Volume2 className="h-4 w-4" />}
-              </button>
+            ) : (
+              <div className={`grid ${getGridClass()} h-full w-full gap-1 p-1`}>
+                {peerIds.map((peerId) => (
+                  <div key={peerId} className="relative overflow-hidden rounded-lg bg-background/60">
+                    <video
+                      autoPlay
+                      playsInline
+                      muted={mutedPeers.has(peerId)}
+                      className="h-full w-full object-cover"
+                      ref={(el) => {
+                        if (el && peers[peerId]) el.srcObject = peers[peerId];
+                      }}
+                    />
+                    <button
+                      onClick={() => toggleMutePeer(peerId)}
+                      className="absolute top-2 right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background/60 backdrop-blur-sm border border-primary/20 text-foreground transition-colors hover:bg-background/80"
+                      title={mutedPeers.has(peerId) ? "Unmute" : "Mute"}
+                    >
+                      {mutedPeers.has(peerId) ? <VolumeX className="h-3.5 w-3.5 text-destructive" /> : <Volume2 className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
 
             {/* Local video PiP */}
-            <div className="absolute bottom-4 right-4 h-32 w-24 overflow-hidden rounded-xl border-2 border-primary/30 shadow-lg sm:h-44 sm:w-32">
+            <div className="absolute bottom-4 right-4 h-32 w-24 overflow-hidden rounded-xl border-2 border-primary/30 shadow-lg sm:h-44 sm:w-32 z-10">
               {videoEnabled ? (
                 <video ref={localVideoRef} autoPlay playsInline muted className="h-full w-full object-cover mirror" />
               ) : (

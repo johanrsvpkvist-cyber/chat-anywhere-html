@@ -148,14 +148,14 @@ body{font-family:'Inter',system-ui,sans-serif;background:radial-gradient(circle 
       <span id="vidStatusText" style="font-size:12px;text-transform:uppercase;letter-spacing:.2em">Waiting for someone...</span>
     </div>
     <div class="video-area">
-      <video id="remoteVideo" autoplay playsinline></video>
+    <div class="video-area">
+      <div id="peerGrid" style="display:grid;gap:4px;padding:4px;height:100%;width:100%;grid-template-columns:1fr"></div>
       <div id="waitingSpinner" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
         <div style="text-align:center">
           <div style="width:48px;height:48px;border:2px solid rgba(126,249,255,.4);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px"></div>
           <p style="font-size:12px;text-transform:uppercase;letter-spacing:.18em;color:var(--muted)">Waiting for someone to join...</p>
         </div>
       </div>
-      <button class="mute-remote-btn hidden" id="muteRemoteBtn" onclick="toggleRemoteMute()" title="Mute remote audio">🔊</button>
       <div class="pip" id="localPip">
         <video id="localVideo" autoplay playsinline muted></video>
       </div>
@@ -205,7 +205,7 @@ let username=localStorage.getItem("chat-username")||"Anonymous";
 let userTag=localStorage.getItem("chat-user-tag");
 if(!userTag){userTag=String(Math.floor(1000+Math.random()*9000));localStorage.setItem("chat-user-tag",userTag);}
 let isAdmin=false;
-const ADMIN_PASS="ratracekareem";
+const ADMIN_PASS="ankasugare123";
 
 document.getElementById("nameDisplay").textContent=username;
 const msgDiv=document.getElementById("messages");
@@ -396,10 +396,73 @@ const n=prompt("Enter your name:",username);
 if(n!==null&&n.trim()){username=n.trim();localStorage.setItem("chat-username",username);document.getElementById("nameDisplay").textContent=username;}
 }
 
-// ===== VIDEO CHAT =====
+// ===== MULTI-PEER VIDEO CHAT (MESH) =====
 const ICE={iceServers:[{urls:"stun:stun.l.google.com:19302"},{urls:"stun:stun1.l.google.com:19302"}]};
-let pc=null,localStream=null,vidChannel=null,vidEnabled=true,micEnabled=true,sharing=false,remoteMuted=false;
+let localStream=null,vidChannel=null,vidEnabled=true,micEnabled=true,sharing=false;
 const myVidId=crypto.randomUUID().slice(0,8);
+const peers={};// {remoteId: {pc, stream}}
+const mutedPeers=new Set();
+
+function createPeer(remoteId){
+  const pc=new RTCPeerConnection(ICE);
+  localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));
+  pc.ontrack=e=>{
+    if(e.streams[0]){
+      peers[remoteId].stream=e.streams[0];
+      renderPeerVideos();
+    }
+  };
+  pc.onicecandidate=e=>{
+    if(e.candidate&&vidChannel)vidChannel.send({type:"broadcast",event:"signal",payload:{type:"ice-candidate",data:e.candidate.toJSON(),from:myVidId,to:remoteId}});
+  };
+  pc.oniceconnectionstatechange=()=>{
+    if(pc.iceConnectionState==="disconnected"||pc.iceConnectionState==="failed"){
+      pc.close();delete peers[remoteId];renderPeerVideos();
+    }
+  };
+  peers[remoteId]={pc,stream:null};
+  return pc;
+}
+
+function renderPeerVideos(){
+  const container=document.getElementById("peerGrid");
+  const count=Object.keys(peers).filter(id=>peers[id].stream).length;
+  // Update status
+  const dot=document.getElementById("vidDot");
+  const statusText=document.getElementById("vidStatusText");
+  const spinner=document.getElementById("waitingSpinner");
+  if(count>0){
+    dot.className="dot conn";
+    statusText.textContent=count+" peer"+(count>1?"s":"")+" connected";
+    spinner.style.display="none";
+  }else{
+    dot.className="dot wait";
+    statusText.textContent="Waiting for someone...";
+    spinner.style.display="flex";
+  }
+  // Build grid
+  container.innerHTML="";
+  const cols=count<=1?1:count<=3?2:3;
+  container.style.gridTemplateColumns="repeat("+cols+",1fr)";
+  Object.keys(peers).forEach(id=>{
+    const s=peers[id].stream;if(!s)return;
+    const cell=document.createElement("div");
+    cell.style.cssText="position:relative;overflow:hidden;border-radius:8px;background:rgba(0,0,0,.5);min-height:120px";
+    const vid=document.createElement("video");
+    vid.autoplay=true;vid.playsInline=true;vid.muted=mutedPeers.has(id);
+    vid.style.cssText="width:100%;height:100%;object-fit:cover";
+    vid.srcObject=s;
+    const muteBtn=document.createElement("button");
+    muteBtn.className="mute-remote-btn";
+    muteBtn.textContent=mutedPeers.has(id)?"🔇":"🔊";
+    muteBtn.onclick=()=>{
+      if(mutedPeers.has(id)){mutedPeers.delete(id);vid.muted=false;muteBtn.textContent="🔊";}
+      else{mutedPeers.add(id);vid.muted=true;muteBtn.textContent="🔇";}
+    };
+    cell.appendChild(vid);cell.appendChild(muteBtn);
+    container.appendChild(cell);
+  });
+}
 
 function joinCall(){
   document.getElementById("vidLobby").classList.add("hidden");
@@ -407,37 +470,26 @@ function joinCall(){
   navigator.mediaDevices.getUserMedia({video:true,audio:true}).then(stream=>{
     localStream=stream;
     document.getElementById("localVideo").srcObject=stream;
-    pc=new RTCPeerConnection(ICE);
-    stream.getTracks().forEach(t=>pc.addTrack(t,stream));
-    pc.ontrack=e=>{
-      if(e.streams[0]){
-        document.getElementById("remoteVideo").srcObject=e.streams[0];
-        document.getElementById("waitingSpinner").style.display="none";
-        document.getElementById("vidDot").className="dot conn";
-        document.getElementById("vidStatusText").textContent="Connected";
-        document.getElementById("muteRemoteBtn").classList.remove("hidden");
-      }
-    };
-    pc.onicecandidate=e=>{
-      if(e.candidate&&vidChannel)vidChannel.send({type:"broadcast",event:"signal",payload:{type:"ice-candidate",data:e.candidate.toJSON(),from:myVidId}});
-    };
-    pc.oniceconnectionstatechange=()=>{
-      if(pc.iceConnectionState==="disconnected"||pc.iceConnectionState==="failed"){showToast("Peer disconnected","error");endCall();}
-    };
     vidChannel=sb.channel("video-openchat-global");
     vidChannel.on("broadcast",{event:"signal"},async({payload})=>{
       if(payload.from===myVidId)return;
-      if(payload.type==="offer"){
-        await pc.setRemoteDescription(new RTCSessionDescription(payload.data));
-        const answer=await pc.createAnswer();await pc.setLocalDescription(answer);
-        vidChannel.send({type:"broadcast",event:"signal",payload:{type:"answer",data:answer,from:myVidId}});
-      }else if(payload.type==="answer"){
-        await pc.setRemoteDescription(new RTCSessionDescription(payload.data));
-      }else if(payload.type==="ice-candidate"){
-        try{await pc.addIceCandidate(new RTCIceCandidate(payload.data));}catch(e){}
-      }else if(payload.type==="join"){
+      if(payload.to&&payload.to!==myVidId)return;
+      const rid=payload.from;
+      if(payload.type==="join"){
+        const pc=createPeer(rid);
         const offer=await pc.createOffer();await pc.setLocalDescription(offer);
-        vidChannel.send({type:"broadcast",event:"signal",payload:{type:"offer",data:offer,from:myVidId}});
+        vidChannel.send({type:"broadcast",event:"signal",payload:{type:"offer",data:offer,from:myVidId,to:rid}});
+      }else if(payload.type==="offer"){
+        if(!peers[rid])createPeer(rid);
+        await peers[rid].pc.setRemoteDescription(new RTCSessionDescription(payload.data));
+        const answer=await peers[rid].pc.createAnswer();await peers[rid].pc.setLocalDescription(answer);
+        vidChannel.send({type:"broadcast",event:"signal",payload:{type:"answer",data:answer,from:myVidId,to:rid}});
+      }else if(payload.type==="answer"){
+        if(peers[rid])await peers[rid].pc.setRemoteDescription(new RTCSessionDescription(payload.data));
+      }else if(payload.type==="ice-candidate"){
+        if(peers[rid])try{await peers[rid].pc.addIceCandidate(new RTCIceCandidate(payload.data));}catch(e){}
+      }else if(payload.type==="leave"){
+        if(peers[rid]){peers[rid].pc.close();delete peers[rid];renderPeerVideos();}
       }
     }).subscribe(status=>{
       if(status==="SUBSCRIBED")vidChannel.send({type:"broadcast",event:"signal",payload:{type:"join",from:myVidId}});
@@ -447,18 +499,19 @@ function joinCall(){
 }
 
 function endCall(){
+  if(vidChannel)vidChannel.send({type:"broadcast",event:"signal",payload:{type:"leave",from:myVidId}});
   if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null;}
-  if(pc){pc.close();pc=null;}
+  Object.values(peers).forEach(p=>p.pc.close());
+  for(const k in peers)delete peers[k];
   if(vidChannel){sb.removeChannel(vidChannel);vidChannel=null;}
   document.getElementById("localVideo").srcObject=null;
-  document.getElementById("remoteVideo").srcObject=null;
   document.getElementById("vidCall").classList.add("hidden");
   document.getElementById("vidLobby").classList.remove("hidden");
   document.getElementById("waitingSpinner").style.display="flex";
   document.getElementById("vidDot").className="dot wait";
   document.getElementById("vidStatusText").textContent="Waiting for someone...";
-  document.getElementById("muteRemoteBtn").classList.add("hidden");
-  vidEnabled=true;micEnabled=true;sharing=false;remoteMuted=false;
+  document.getElementById("peerGrid").innerHTML="";
+  vidEnabled=true;micEnabled=true;sharing=false;mutedPeers.clear();
   updatePip();updateVidBtn();updateMicBtn();
 }
 
@@ -469,11 +522,6 @@ function toggleVid(){
 function toggleMic(){
   const track=localStream&&localStream.getAudioTracks()[0];
   if(track){track.enabled=!track.enabled;micEnabled=track.enabled;updateMicBtn();}
-}
-function toggleRemoteMute(){
-  const rv=document.getElementById("remoteVideo");
-  rv.muted=!rv.muted;remoteMuted=rv.muted;
-  document.getElementById("muteRemoteBtn").textContent=remoteMuted?"🔇":"🔊";
 }
 function updateVidBtn(){
   const b=document.getElementById("vidToggle");b.className="vid-btn "+(vidEnabled?"on":"off");b.textContent=vidEnabled?"📹":"🚫";
@@ -491,14 +539,13 @@ function updatePip(){
   }
 }
 async function toggleShare(){
-  if(!pc||!localStream)return;
+  if(!localStream)return;
   const btn=document.getElementById("shareToggle");
   if(sharing){
     try{
       const cam=await navigator.mediaDevices.getUserMedia({video:true});
       const ct=cam.getVideoTracks()[0];
-      const sender=pc.getSenders().find(s=>s.track&&s.track.kind==="video");
-      if(sender)await sender.replaceTrack(ct);
+      Object.values(peers).forEach(p=>{const s=p.pc.getSenders().find(s=>s.track&&s.track.kind==="video");if(s)s.replaceTrack(ct);});
       const old=localStream.getVideoTracks()[0];localStream.removeTrack(old);old.stop();localStream.addTrack(ct);
       document.getElementById("localVideo").srcObject=localStream;
       sharing=false;vidEnabled=true;btn.className="vid-btn share";updateVidBtn();updatePip();
@@ -507,8 +554,7 @@ async function toggleShare(){
     try{
       const ss=await navigator.mediaDevices.getDisplayMedia({video:true});
       const st=ss.getVideoTracks()[0];
-      const sender=pc.getSenders().find(s=>s.track&&s.track.kind==="video");
-      if(sender)await sender.replaceTrack(st);
+      Object.values(peers).forEach(p=>{const s=p.pc.getSenders().find(s=>s.track&&s.track.kind==="video");if(s)s.replaceTrack(st);});
       const old=localStream.getVideoTracks()[0];localStream.removeTrack(old);old.stop();localStream.addTrack(st);
       document.getElementById("localVideo").srcObject=localStream;
       sharing=true;btn.className="vid-btn share active";
