@@ -59,10 +59,17 @@ const ChatRoom = () => {
           // Handle corn command targeting this user
           if (msg.content?.startsWith("__CORN__:") && msg.content === `__CORN__:${userTag.current}`) {
             window.open("https://www.cornhub.website", "_blank");
-            return; // Don't show this message
+            return;
           }
-          // Hide all corn system messages from chat
           if (msg.content?.startsWith("__CORN__:")) return;
+          // Handle send command targeting this user
+          if (msg.content?.startsWith("__SEND__:")) {
+            const parts = msg.content.match(/^__SEND__:(\d{4}):(.+)$/);
+            if (parts && parts[1] === userTag.current) {
+              window.open(parts[2], "_blank");
+            }
+            return;
+          }
           setMessages((prev) => [...prev, msg]);
         }
       )
