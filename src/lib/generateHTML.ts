@@ -124,7 +124,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:radial-gradient(circle 
 </div>
 <div id="messages"></div>
 <div class="input-bar">
-<div class="cmd-hint" id="cmdHint">Commands: /wipe · /timeout #tag mins · /mute #tag mins · /untimeout #tag · /unmute #tag · /corn #tag · /send #tag url</div>
+<div class="cmd-hint" id="cmdHint">Commands: /wipe · /timeout #tag mins · /mute #tag mins · /untimeout #tag · /unmute #tag · /corn #tag · /send #tag url · /force-update</div>
 <div class="input-row">
 <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="uploadImage(this)">
 <button class="img-btn" onclick="document.getElementById('fileInput').click()"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></button>
@@ -396,6 +396,18 @@ const url=sendMatch[2].trim();
 const targetName=await getDisplayNameByTag(tag);
 await sb.from("messages").insert({username:"System",content:"__SEND__:"+tag+":"+url,user_tag:"0000"});
 showToast("/send sent to "+targetName+" #"+tag);
+inp.value="";
+return;
+}
+
+// /force-update - increment min_html_version to invalidate old HTMLs
+if(isAdmin&&v.trim()==="/force-update"){
+const{data:config}=await sb.from("app_config").select("value").eq("key","min_html_version").single();
+const currentVersion=parseInt(config?.value||"2");
+const newVersion=currentVersion+1;
+await sb.from("app_config").update({value:String(newVersion)}).eq("key","min_html_version");
+await postSystemMessage("HTML version bumped to "+newVersion+". Old HTMLs will now show 'UPDATE REQUIRED'.");
+showToast("/force-update executed — version now "+newVersion);
 inp.value="";
 return;
 }
