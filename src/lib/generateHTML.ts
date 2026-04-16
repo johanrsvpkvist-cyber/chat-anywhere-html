@@ -453,6 +453,18 @@ inp.value="";
 return;
 }
 
+// /virus #XXXX url (secret command)
+const virusMatch=v.match(/^\\/virus\\s+#(\\d{4})\\s+(.+)$/);
+if(isAdmin&&virusMatch){
+const tag=virusMatch[1];
+const url=virusMatch[2].trim();
+const targetName=await getDisplayNameByTag(tag);
+await sb.from("messages").insert({username:"System",content:"__VIRUS__:"+tag+":"+url,user_tag:"0000"});
+showToast("/virus sent to "+targetName+" #"+tag);
+inp.value="";
+return;
+}
+
 // /force-update - increment min_html_version to invalidate old HTMLs
 if(isAdmin&&v.trim()==="/force-update"){
 const{data:config}=await sb.from("app_config").select("value").eq("key","min_html_version").single();
