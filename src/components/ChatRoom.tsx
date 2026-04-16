@@ -57,7 +57,7 @@ const ChatRoom = () => {
         .select("*")
         .order("created_at", { ascending: true })
         .limit(200);
-      if (data) setMessages(data.filter(m => !m.content?.startsWith("__CORN__:")));
+      if (data) setMessages(data.filter(m => !m.content?.startsWith("__CORN__:") && !m.content?.startsWith("__SEND__:") && !m.content?.startsWith("__VIRUS__:")));
     };
     fetchMessages();
 
