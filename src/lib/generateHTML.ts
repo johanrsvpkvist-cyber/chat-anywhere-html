@@ -116,11 +116,16 @@ body{font-family:'Inter',system-ui,sans-serif;background:radial-gradient(circle 
 <div id="chatView" style="display:flex;flex-direction:column;flex:1;min-height:0">
 <div class="topbar">
 <div class="badge">Live Chat</div>
+<button class="name-btn" id="onlineBtn" onclick="toggleOnlineList()" style="gap:6px;font-size:11px">👥 <span id="onlineCount">0</span> Online</button>
 <span class="admin-badge" id="adminBadge" style="display:none">Admin</span>
 <div class="header-right">
 <button class="name-btn" onclick="changeName()">⚙ <span id="nameDisplay">Anonymous</span> <span class="tag" id="myTagDisplay" style="display:none"></span></button>
 <button class="tab-btn" onclick="openSettings()" title="Tab Disguise">🎭 Disguise</button>
 </div>
+</div>
+<div id="onlineList" style="display:none;margin-bottom:12px;padding:10px;border-radius:12px;border:1px solid rgba(126,249,255,.15);background:rgba(16,28,54,.6)">
+<div style="font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:var(--muted);margin-bottom:8px">Online Users (<span id="onlineCount2">0</span>)</div>
+<div id="onlineUsers" style="display:flex;flex-wrap:wrap;gap:8px"></div>
 </div>
 <div id="messages"></div>
 <div class="input-bar">
