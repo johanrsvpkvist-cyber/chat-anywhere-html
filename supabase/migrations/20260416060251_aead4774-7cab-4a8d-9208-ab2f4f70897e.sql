@@ -1,0 +1,1 @@
+CREATE POLICY "Anyone can update app_config" ON public.app_config FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);

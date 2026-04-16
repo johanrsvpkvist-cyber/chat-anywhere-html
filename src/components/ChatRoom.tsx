@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Image, Settings, Download, X, MessageSquare, Video } from "lucide-react";
+import { Send, Image, Settings, Download, X, MessageSquare, Video, Users } from "lucide-react";
 import { generateChatHTML } from "@/lib/generateHTML";
 import { toast } from "sonner";
 import VideoChat from "./VideoChat";
@@ -16,13 +16,22 @@ interface Message {
   user_tag: string;
 }
 
+interface OnlineUser {
+  username: string;
+  tag: string;
+}
+
 const ADMIN_PASSWORD = "ankasugare123";
 
-function getOrCreateTag(): string {
-  const stored = localStorage.getItem("chat-user-tag");
-  if (stored) return stored;
+function getDailyTag(): string {
+  const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+  const storedDay = localStorage.getItem("chat-tag-day");
+  const storedTag = localStorage.getItem("chat-user-tag");
+  if (storedDay === today && storedTag) return storedTag;
+  // New day or first visit — generate new tag
   const tag = String(Math.floor(1000 + Math.random() * 9000));
   localStorage.setItem("chat-user-tag", tag);
+  localStorage.setItem("chat-tag-day", today);
   return tag;
 }
 
@@ -34,9 +43,12 @@ const ChatRoom = () => {
   const [tempName, setTempName] = useState(username);
   const [uploading, setUploading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const userTag = useRef(getOrCreateTag());
+  const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
+  const [showOnline, setShowOnline] = useState(false);
+  const userTag = useRef(getDailyTag());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const presenceChannelRef = useRef<any>(null);
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -86,6 +98,43 @@ const ChatRoom = () => {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  // Presence tracking for online users
+  useEffect(() => {
+    const presenceChannel = supabase.channel("online-users", {
+      config: { presence: { key: userTag.current } },
+    });
+    presenceChannelRef.current = presenceChannel;
+
+    const syncPresence = () => {
+      const state = presenceChannel.presenceState();
+      const users: OnlineUser[] = [];
+      for (const [, presences] of Object.entries(state)) {
+        const p = (presences as any[])[0];
+        if (p) users.push({ username: p.username, tag: p.tag });
+      }
+      setOnlineUsers(users);
+    };
+
+    presenceChannel
+      .on("presence", { event: "sync" }, syncPresence)
+      .subscribe(async (status: string) => {
+        if (status === "SUBSCRIBED") {
+          await presenceChannel.track({ username, tag: userTag.current });
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(presenceChannel);
+    };
+  }, []);
+
+  // Update presence when username changes
+  useEffect(() => {
+    if (presenceChannelRef.current) {
+      presenceChannelRef.current.track({ username, tag: userTag.current });
+    }
+  }, [username]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -323,6 +372,13 @@ const ChatRoom = () => {
               <span className="h-2.5 w-2.5 rounded-full bg-primary shadow-[0_0_14px_hsl(var(--primary)/0.65)]" />
               Live Chat
             </span>
+            <button
+              onClick={() => setShowOnline(!showOnline)}
+              className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-foreground transition-colors hover:bg-primary/10"
+            >
+              <Users className="h-3.5 w-3.5" />
+              {onlineUsers.length} Online
+            </button>
             {isAdmin && (
               <span className="inline-flex items-center rounded-full bg-destructive px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-destructive-foreground">
                 Admin
@@ -361,6 +417,26 @@ const ChatRoom = () => {
               </Button>
             </div>
           </div>
+
+          {showOnline && (
+            <div className="mb-3 rounded-xl border border-primary/20 bg-secondary/60 p-3">
+              <div className="mb-2 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                Online Users ({onlineUsers.length})
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {onlineUsers.map((u) => (
+                  <span
+                    key={u.tag}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-primary/15 bg-primary/5 px-3 py-1 text-xs text-foreground"
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.6)]" />
+                    {u.username}
+                    {isAdmin && <span className="font-mono text-[0.6rem] text-primary">#{u.tag}</span>}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="chat-message-card chat-scrollbar mb-4 flex-1 overflow-y-auto rounded-xl p-4 sm:p-5">
             {messages.length === 0 && (

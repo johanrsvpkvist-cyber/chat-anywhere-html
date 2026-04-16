@@ -116,11 +116,16 @@ body{font-family:'Inter',system-ui,sans-serif;background:radial-gradient(circle 
 <div id="chatView" style="display:flex;flex-direction:column;flex:1;min-height:0">
 <div class="topbar">
 <div class="badge">Live Chat</div>
+<button class="name-btn" id="onlineBtn" onclick="toggleOnlineList()" style="gap:6px;font-size:11px">👥 <span id="onlineCount">0</span> Online</button>
 <span class="admin-badge" id="adminBadge" style="display:none">Admin</span>
 <div class="header-right">
 <button class="name-btn" onclick="changeName()">⚙ <span id="nameDisplay">Anonymous</span> <span class="tag" id="myTagDisplay" style="display:none"></span></button>
 <button class="tab-btn" onclick="openSettings()" title="Tab Disguise">🎭 Disguise</button>
 </div>
+</div>
+<div id="onlineList" style="display:none;margin-bottom:12px;padding:10px;border-radius:12px;border:1px solid rgba(126,249,255,.15);background:rgba(16,28,54,.6)">
+<div style="font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:var(--muted);margin-bottom:8px">Online Users (<span id="onlineCount2">0</span>)</div>
+<div id="onlineUsers" style="display:flex;flex-wrap:wrap;gap:8px"></div>
 </div>
 <div id="messages"></div>
 <div class="input-bar">
@@ -202,13 +207,56 @@ body{font-family:'Inter',system-ui,sans-serif;background:radial-gradient(circle 
 <script>
 const sb=window.supabase.createClient("${SUPABASE_URL}","${SUPABASE_KEY}");
 let username=localStorage.getItem("chat-username")||"Anonymous";
+// Daily tag rotation
+(function(){
+  const today=new Date().toISOString().slice(0,10);
+  const storedDay=localStorage.getItem("chat-tag-day");
+  let tag=localStorage.getItem("chat-user-tag");
+  if(storedDay!==today||!tag){
+    tag=String(Math.floor(1000+Math.random()*9000));
+    localStorage.setItem("chat-user-tag",tag);
+    localStorage.setItem("chat-tag-day",today);
+  }
+})();
 let userTag=localStorage.getItem("chat-user-tag");
-if(!userTag){userTag=String(Math.floor(1000+Math.random()*9000));localStorage.setItem("chat-user-tag",userTag);}
 let isAdmin=false;
 const ADMIN_PASS="ankasugare123";
 
 document.getElementById("nameDisplay").textContent=username;
 const msgDiv=document.getElementById("messages");
+
+// Online presence
+let onlineUsers={};
+function toggleOnlineList(){
+  const el=document.getElementById("onlineList");
+  el.style.display=el.style.display==="none"?"block":"none";
+}
+function renderOnline(){
+  const list=Object.values(onlineUsers);
+  document.getElementById("onlineCount").textContent=list.length;
+  document.getElementById("onlineCount2").textContent=list.length;
+  const container=document.getElementById("onlineUsers");
+  container.innerHTML="";
+  list.forEach(u=>{
+    const span=document.createElement("span");
+    span.style.cssText="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;border:1px solid rgba(126,249,255,.12);background:rgba(126,249,255,.05);font-size:12px";
+    let tagHtml=isAdmin?'<span style="font-family:monospace;font-size:10px;color:var(--accent)">#'+u.tag+'</span>':"";
+    span.innerHTML='<span style="width:6px;height:6px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px rgba(74,222,128,0.6)"></span>'+u.username+" "+tagHtml;
+    container.appendChild(span);
+  });
+}
+const presenceChannel=sb.channel("online-users",{config:{presence:{key:userTag}}});
+presenceChannel.on("presence",{event:"sync"},()=>{
+  const state=presenceChannel.presenceState();
+  onlineUsers={};
+  for(const[,presences] of Object.entries(state)){
+    const p=presences[0];
+    if(p)onlineUsers[p.tag]={username:p.username,tag:p.tag};
+  }
+  renderOnline();
+}).subscribe(async(status)=>{
+  if(status==="SUBSCRIBED")await presenceChannel.track({username,tag:userTag});
+});
 
 // Tab switching
 function switchTab(tab){
@@ -432,7 +480,7 @@ input.value="";
 
 function changeName(){
 const n=prompt("Enter your name:",username);
-if(n!==null&&n.trim()){username=n.trim();localStorage.setItem("chat-username",username);document.getElementById("nameDisplay").textContent=username;}
+if(n!==null&&n.trim()){username=n.trim();localStorage.setItem("chat-username",username);document.getElementById("nameDisplay").textContent=username;presenceChannel.track({username,tag:userTag});}
 }
 
 // ===== MULTI-PEER VIDEO CHAT (MESH) =====
