@@ -418,6 +418,26 @@ const ChatRoom = () => {
             </div>
           </div>
 
+          {showOnline && (
+            <div className="mb-3 rounded-xl border border-primary/20 bg-secondary/60 p-3">
+              <div className="mb-2 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                Online Users ({onlineUsers.length})
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {onlineUsers.map((u) => (
+                  <span
+                    key={u.tag}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-primary/15 bg-primary/5 px-3 py-1 text-xs text-foreground"
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.6)]" />
+                    {u.username}
+                    {isAdmin && <span className="font-mono text-[0.6rem] text-primary">#{u.tag}</span>}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="chat-message-card chat-scrollbar mb-4 flex-1 overflow-y-auto rounded-xl p-4 sm:p-5">
             {messages.length === 0 && (
               <div className="flex h-full items-center justify-center text-sm uppercase tracking-[0.18em] text-muted-foreground">
