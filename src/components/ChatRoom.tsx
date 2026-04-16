@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Image, Settings, Download, X, MessageSquare, Video } from "lucide-react";
+import { Send, Image, Settings, Download, X, MessageSquare, Video, Users } from "lucide-react";
 import { generateChatHTML } from "@/lib/generateHTML";
 import { toast } from "sonner";
 import VideoChat from "./VideoChat";
@@ -16,13 +16,22 @@ interface Message {
   user_tag: string;
 }
 
+interface OnlineUser {
+  username: string;
+  tag: string;
+}
+
 const ADMIN_PASSWORD = "ankasugare123";
 
-function getOrCreateTag(): string {
-  const stored = localStorage.getItem("chat-user-tag");
-  if (stored) return stored;
+function getDailyTag(): string {
+  const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+  const storedDay = localStorage.getItem("chat-tag-day");
+  const storedTag = localStorage.getItem("chat-user-tag");
+  if (storedDay === today && storedTag) return storedTag;
+  // New day or first visit — generate new tag
   const tag = String(Math.floor(1000 + Math.random() * 9000));
   localStorage.setItem("chat-user-tag", tag);
+  localStorage.setItem("chat-tag-day", today);
   return tag;
 }
 
@@ -34,9 +43,12 @@ const ChatRoom = () => {
   const [tempName, setTempName] = useState(username);
   const [uploading, setUploading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const userTag = useRef(getOrCreateTag());
+  const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
+  const [showOnline, setShowOnline] = useState(false);
+  const userTag = useRef(getDailyTag());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const presenceChannelRef = useRef<any>(null);
 
   useEffect(() => {
     const fetchMessages = async () => {
