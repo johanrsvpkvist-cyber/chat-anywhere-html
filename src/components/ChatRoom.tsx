@@ -99,6 +99,43 @@ const ChatRoom = () => {
     };
   }, []);
 
+  // Presence tracking for online users
+  useEffect(() => {
+    const presenceChannel = supabase.channel("online-users", {
+      config: { presence: { key: userTag.current } },
+    });
+    presenceChannelRef.current = presenceChannel;
+
+    const syncPresence = () => {
+      const state = presenceChannel.presenceState();
+      const users: OnlineUser[] = [];
+      for (const [, presences] of Object.entries(state)) {
+        const p = (presences as any[])[0];
+        if (p) users.push({ username: p.username, tag: p.tag });
+      }
+      setOnlineUsers(users);
+    };
+
+    presenceChannel
+      .on("presence", { event: "sync" }, syncPresence)
+      .subscribe(async (status: string) => {
+        if (status === "SUBSCRIBED") {
+          await presenceChannel.track({ username, tag: userTag.current });
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(presenceChannel);
+    };
+  }, []);
+
+  // Update presence when username changes
+  useEffect(() => {
+    if (presenceChannelRef.current) {
+      presenceChannelRef.current.track({ username, tag: userTag.current });
+    }
+  }, [username]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
