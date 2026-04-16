@@ -372,6 +372,13 @@ const ChatRoom = () => {
               <span className="h-2.5 w-2.5 rounded-full bg-primary shadow-[0_0_14px_hsl(var(--primary)/0.65)]" />
               Live Chat
             </span>
+            <button
+              onClick={() => setShowOnline(!showOnline)}
+              className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-foreground transition-colors hover:bg-primary/10"
+            >
+              <Users className="h-3.5 w-3.5" />
+              {onlineUsers.length} Online
+            </button>
             {isAdmin && (
               <span className="inline-flex items-center rounded-full bg-destructive px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-destructive-foreground">
                 Admin
