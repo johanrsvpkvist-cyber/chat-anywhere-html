@@ -480,7 +480,7 @@ input.value="";
 
 function changeName(){
 const n=prompt("Enter your name:",username);
-if(n!==null&&n.trim()){username=n.trim();localStorage.setItem("chat-username",username);document.getElementById("nameDisplay").textContent=username;}
+if(n!==null&&n.trim()){username=n.trim();localStorage.setItem("chat-username",username);document.getElementById("nameDisplay").textContent=username;presenceChannel.track({username,tag:userTag});}
 }
 
 // ===== MULTI-PEER VIDEO CHAT (MESH) =====
