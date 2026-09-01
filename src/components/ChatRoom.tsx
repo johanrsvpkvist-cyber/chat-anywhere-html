@@ -414,9 +414,18 @@ const ChatRoom = () => {
               {onlineUsers.length} Online
             </button>
             {isAdmin && (
-              <span className="inline-flex items-center rounded-full bg-destructive px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-destructive-foreground">
-                Admin
-              </span>
+              <>
+                <button
+                  onClick={() => setShowAdminPanel(true)}
+                  className="inline-flex items-center gap-2 rounded-full border border-destructive/40 bg-destructive/10 px-3 py-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-foreground transition-all hover:-translate-y-0.5 hover:bg-destructive/20"
+                >
+                  <Shield className="h-3.5 w-3.5 text-destructive" />
+                  Admin Panel
+                </button>
+                <span className="inline-flex items-center rounded-full bg-destructive px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-destructive-foreground">
+                  Admin
+                </span>
+              </>
             )}
             <div className="ml-auto flex flex-wrap items-center gap-2">
               {editingName ? (
