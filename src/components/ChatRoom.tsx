@@ -45,6 +45,7 @@ const ChatRoom = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const [showOnline, setShowOnline] = useState(false);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
   const userTag = useRef(getDailyTag());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
