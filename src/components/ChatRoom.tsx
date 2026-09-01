@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Image, Settings, Download, X, MessageSquare, Video, Users } from "lucide-react";
+import { Send, Image, Settings, Download, X, MessageSquare, Video, Users, Shield, VolumeX, Volume2, Clock } from "lucide-react";
 import { generateChatHTML } from "@/lib/generateHTML";
 import { toast } from "sonner";
 import VideoChat from "./VideoChat";
