@@ -21,7 +21,7 @@ interface OnlineUser {
   tag: string;
 }
 
-const ADMIN_PASSWORD = "ankasugare123";
+const ADMIN_SEQUENCE = ["ArrowLeft", "ArrowLeft", "ArrowRight", "ArrowRight"];
 
 function getDailyTag(): string {
   const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
