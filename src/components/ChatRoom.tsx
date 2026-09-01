@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Image, Settings, Download, X, MessageSquare, Video, Users } from "lucide-react";
+import { Send, Image, Settings, Download, X, MessageSquare, Video, Users, Shield, VolumeX, Volume2, Clock } from "lucide-react";
 import { generateChatHTML } from "@/lib/generateHTML";
 import { toast } from "sonner";
 import VideoChat from "./VideoChat";
@@ -45,6 +45,7 @@ const ChatRoom = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const [showOnline, setShowOnline] = useState(false);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
   const userTag = useRef(getDailyTag());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -211,6 +212,24 @@ const ChatRoom = () => {
     });
   };
 
+  const adminMute = async (tag: string, name: string, mins: number) => {
+    const mutedUntil = new Date(Date.now() + mins * 60000).toISOString();
+    await supabase.from("muted_users").insert({ user_tag: tag, muted_until: mutedUntil });
+    await postSystemMessage(`${name} #${tag} was muted for ${mins} minute(s).`);
+    toast.success(`Muted ${name} #${tag} for ${mins}m`);
+  };
+
+  const adminUnmute = async (tag: string, name: string) => {
+    await supabase.from("muted_users").delete().eq("user_tag", tag);
+    await postSystemMessage(`${name} #${tag} was unmuted.`);
+    toast.success(`Unmuted ${name} #${tag}`);
+  };
+
+  const adminCorn = async (tag: string, name: string) => {
+    await supabase.from("messages").insert({ username: "System", content: `__CORN__:${tag}`, user_tag: "0000" });
+    toast.success(`Corn sent to ${name} #${tag}`);
+  };
+
   const handleCommand = async (text: string): Promise<boolean> => {
     if (!isAdmin) return false;
 
@@ -289,17 +308,6 @@ const ChatRoom = () => {
         user_tag: "0000",
       });
       toast.success(`/virus sent to ${targetName} #${tag}`);
-      return true;
-    }
-
-    // /force-update - increment min_html_version to invalidate old HTMLs
-    if (text.trim() === "/force-update") {
-      const { data: config } = await supabase.from("app_config").select("value").eq("key", "min_html_version").single();
-      const currentVersion = parseInt(config?.value || "2");
-      const newVersion = currentVersion + 1;
-      await supabase.from("app_config").update({ value: String(newVersion) }).eq("key", "min_html_version");
-      await postSystemMessage(`HTML version bumped to ${newVersion}. Old HTMLs will now show "UPDATE REQUIRED".`);
-      toast.success(`/force-update executed — version now ${newVersion}`);
       return true;
     }
 
@@ -424,9 +432,18 @@ const ChatRoom = () => {
               {onlineUsers.length} Online
             </button>
             {isAdmin && (
-              <span className="inline-flex items-center rounded-full bg-destructive px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-destructive-foreground">
-                Admin
-              </span>
+              <>
+                <button
+                  onClick={() => setShowAdminPanel(true)}
+                  className="inline-flex items-center gap-2 rounded-full border border-destructive/40 bg-destructive/10 px-3 py-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-foreground transition-all hover:-translate-y-0.5 hover:bg-destructive/20"
+                >
+                  <Shield className="h-3.5 w-3.5 text-destructive" />
+                  Admin Panel
+                </button>
+                <span className="inline-flex items-center rounded-full bg-destructive px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-destructive-foreground">
+                  Admin
+                </span>
+              </>
             )}
             <div className="ml-auto flex flex-wrap items-center gap-2">
               {editingName ? (
@@ -542,7 +559,7 @@ const ChatRoom = () => {
           <div className="rounded-xl border border-primary/20 bg-foreground/5 p-3">
             {isAdmin && (
               <div className="mb-2 px-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                Commands: /wipe · /timeout #tag mins · /mute #tag mins · /untimeout #tag · /unmute #tag · /corn #tag · /send #tag url · /force-update
+                Commands: /wipe · /timeout #tag mins · /mute #tag mins · /untimeout #tag · /unmute #tag · /corn #tag · /send #tag url
               </div>
             )}
             <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-background/30 p-2">
@@ -565,6 +582,74 @@ const ChatRoom = () => {
           </div>
         </div>
       </div>
+
+      {showAdminPanel && isAdmin && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-sm p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowAdminPanel(false); }}
+        >
+          <div className="w-full max-w-lg rounded-2xl border border-destructive/30 bg-card p-6 shadow-[0_0_40px_hsl(var(--destructive)/0.25)]">
+            <div className="mb-5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-destructive" />
+                <h2 className="text-lg font-bold uppercase tracking-[0.2em] text-foreground">Admin Panel</h2>
+              </div>
+              <button onClick={() => setShowAdminPanel(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="mb-3 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              Users online ({onlineUsers.length})
+            </div>
+            <div className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
+              {onlineUsers.length === 0 && (
+                <div className="rounded-lg border border-primary/10 bg-secondary/40 p-4 text-center text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                  Nobody here yet.
+                </div>
+              )}
+              {onlineUsers.map((u) => (
+                <div key={u.tag} className="flex items-center justify-between gap-3 rounded-xl border border-primary/15 bg-secondary/50 p-3">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.6)]" />
+                    <span className="truncate text-sm font-semibold text-foreground">{u.username}</span>
+                    <span className="font-mono text-xs text-primary">#{u.tag}</span>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <button
+                      onClick={() => adminMute(u.tag, u.username, 5)}
+                      title="Mute 5m"
+                      className="inline-flex h-8 items-center gap-1 rounded-full bg-destructive/15 px-2.5 text-[0.65rem] font-semibold uppercase tracking-wide text-destructive transition-colors hover:bg-destructive/25"
+                    >
+                      <VolumeX className="h-3 w-3" /> 5m
+                    </button>
+                    <button
+                      onClick={() => adminMute(u.tag, u.username, 30)}
+                      title="Mute 30m"
+                      className="inline-flex h-8 items-center gap-1 rounded-full bg-destructive/15 px-2.5 text-[0.65rem] font-semibold uppercase tracking-wide text-destructive transition-colors hover:bg-destructive/25"
+                    >
+                      <Clock className="h-3 w-3" /> 30m
+                    </button>
+                    <button
+                      onClick={() => adminUnmute(u.tag, u.username)}
+                      title="Unmute"
+                      className="inline-flex h-8 items-center gap-1 rounded-full bg-primary/15 px-2.5 text-[0.65rem] font-semibold uppercase tracking-wide text-primary transition-colors hover:bg-primary/25"
+                    >
+                      <Volume2 className="h-3 w-3" /> Un
+                    </button>
+                    <button
+                      onClick={() => adminCorn(u.tag, u.username)}
+                      title="Corn"
+                      className="inline-flex h-8 items-center rounded-full bg-accent/20 px-2.5 text-[0.65rem] font-semibold uppercase tracking-wide text-foreground transition-colors hover:bg-accent/30"
+                    >
+                      🌽
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
