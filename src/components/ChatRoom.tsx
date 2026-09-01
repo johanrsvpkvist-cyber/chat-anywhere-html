@@ -283,13 +283,6 @@ const ChatRoom = () => {
     const text = newMessage.trim();
     if (!text) return;
 
-    // Check for admin password
-    if (text === ADMIN_PASSWORD) {
-      setIsAdmin(true);
-      setNewMessage("");
-      toast.success("Admin access granted");
-      return;
-    }
 
     // Check for commands
     if (text.startsWith("/")) {
