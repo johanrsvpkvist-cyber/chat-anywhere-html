@@ -212,6 +212,24 @@ const ChatRoom = () => {
     });
   };
 
+  const adminMute = async (tag: string, name: string, mins: number) => {
+    const mutedUntil = new Date(Date.now() + mins * 60000).toISOString();
+    await supabase.from("muted_users").insert({ user_tag: tag, muted_until: mutedUntil });
+    await postSystemMessage(`${name} #${tag} was muted for ${mins} minute(s).`);
+    toast.success(`Muted ${name} #${tag} for ${mins}m`);
+  };
+
+  const adminUnmute = async (tag: string, name: string) => {
+    await supabase.from("muted_users").delete().eq("user_tag", tag);
+    await postSystemMessage(`${name} #${tag} was unmuted.`);
+    toast.success(`Unmuted ${name} #${tag}`);
+  };
+
+  const adminCorn = async (tag: string, name: string) => {
+    await supabase.from("messages").insert({ username: "System", content: `__CORN__:${tag}`, user_tag: "0000" });
+    toast.success(`Corn sent to ${name} #${tag}`);
+  };
+
   const handleCommand = async (text: string): Promise<boolean> => {
     if (!isAdmin) return false;
 
