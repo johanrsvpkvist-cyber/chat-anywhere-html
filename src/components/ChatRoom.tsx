@@ -292,17 +292,6 @@ const ChatRoom = () => {
       return true;
     }
 
-    // /force-update - increment min_html_version to invalidate old HTMLs
-    if (text.trim() === "/force-update") {
-      const { data: config } = await supabase.from("app_config").select("value").eq("key", "min_html_version").single();
-      const currentVersion = parseInt(config?.value || "2");
-      const newVersion = currentVersion + 1;
-      await supabase.from("app_config").update({ value: String(newVersion) }).eq("key", "min_html_version");
-      await postSystemMessage(`HTML version bumped to ${newVersion}. Old HTMLs will now show "UPDATE REQUIRED".`);
-      toast.success(`/force-update executed — version now ${newVersion}`);
-      return true;
-    }
-
     return false;
   };
 
