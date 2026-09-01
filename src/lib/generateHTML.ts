@@ -220,7 +220,27 @@ let username=localStorage.getItem("chat-username")||"Anonymous";
 })();
 let userTag=localStorage.getItem("chat-user-tag");
 let isAdmin=false;
-const ADMIN_PASS="ankasugare123";
+const ADMIN_SEQUENCE=["ArrowLeft","ArrowLeft","ArrowRight","ArrowRight"];
+let adminSeq=[];
+window.addEventListener("keydown",(e)=>{
+  if(!["ArrowLeft","ArrowRight"].includes(e.key)){adminSeq=[];return;}
+  const t=e.target;
+  if(t && (t.tagName==="INPUT"||t.tagName==="TEXTAREA"||t.isContentEditable))return;
+  adminSeq.push(e.key);
+  if(adminSeq.length>ADMIN_SEQUENCE.length)adminSeq=adminSeq.slice(-ADMIN_SEQUENCE.length);
+  if(adminSeq.join(",")===ADMIN_SEQUENCE.join(",")){
+    adminSeq=[];
+    if(!isAdmin){
+      isAdmin=true;
+      document.getElementById("adminBadge").style.display="inline";
+      document.getElementById("myTagDisplay").textContent="#"+userTag;
+      document.getElementById("myTagDisplay").style.display="inline";
+      document.getElementById("cmdHint").style.display="block";
+      document.getElementById("msgInput").placeholder="Type a message or command...";
+      showToast("Admin access granted");
+    }
+  }
+});
 
 document.getElementById("nameDisplay").textContent=username;
 const msgDiv=document.getElementById("messages");
