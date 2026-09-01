@@ -21,7 +21,7 @@ interface OnlineUser {
   tag: string;
 }
 
-const ADMIN_PASSWORD = "ankasugare123";
+const ADMIN_SEQUENCE = ["ArrowLeft", "ArrowLeft", "ArrowRight", "ArrowRight"];
 
 function getDailyTag(): string {
   const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
@@ -49,6 +49,33 @@ const ChatRoom = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const presenceChannelRef = useRef<any>(null);
+  const adminSeqRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!["ArrowLeft", "ArrowRight"].includes(e.key)) {
+        adminSeqRef.current = [];
+        return;
+      }
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
+        return;
+      }
+      adminSeqRef.current.push(e.key);
+      if (adminSeqRef.current.length > ADMIN_SEQUENCE.length) {
+        adminSeqRef.current = adminSeqRef.current.slice(-ADMIN_SEQUENCE.length);
+      }
+      if (adminSeqRef.current.join(",") === ADMIN_SEQUENCE.join(",")) {
+        adminSeqRef.current = [];
+        setIsAdmin((prev) => {
+          if (!prev) toast.success("Admin access granted");
+          return true;
+        });
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -283,13 +310,6 @@ const ChatRoom = () => {
     const text = newMessage.trim();
     if (!text) return;
 
-    // Check for admin password
-    if (text === ADMIN_PASSWORD) {
-      setIsAdmin(true);
-      setNewMessage("");
-      toast.success("Admin access granted");
-      return;
-    }
 
     // Check for commands
     if (text.startsWith("/")) {
