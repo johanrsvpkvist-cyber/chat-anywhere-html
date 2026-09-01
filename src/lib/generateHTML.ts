@@ -409,17 +409,6 @@ const inp=document.getElementById("msgInput");
 const v=inp.value.trim();
 if(!v)return;
 
-if(v===ADMIN_PASS){
-isAdmin=true;
-document.getElementById("adminBadge").style.display="inline";
-document.getElementById("myTagDisplay").textContent="#"+userTag;
-document.getElementById("myTagDisplay").style.display="inline";
-document.getElementById("cmdHint").style.display="block";
-document.getElementById("msgInput").placeholder="Type a message or command...";
-inp.value="";
-showToast("Admin access granted");
-return;
-}
 
 if(isAdmin&&v==="/wipe"){
 await sb.from("messages").delete().neq("id","00000000-0000-0000-0000-000000000000");
