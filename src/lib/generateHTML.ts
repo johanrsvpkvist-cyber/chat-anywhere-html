@@ -450,18 +450,22 @@ let sb = null;
 let presenceChannel = null;
 const broadcastChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('openchat_fallback') : null;
 
+const DEFAULT_SB_URL = "https://krvtjbsluoepatdezarg.supabase.co";
+const DEFAULT_SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtydnRqYnNsdW9lcGF0ZGV6YXJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5MzE5ODksImV4cCI6MjA5MDUwNzk4OX0.sxUlgZENLKZGlO09lm8Bsbqv1NLYX2YTYeQC8Fu1_9Q";
+
 function initSupabase() {
-  const customUrl = localStorage.getItem("sb_url");
-  const customKey = localStorage.getItem("sb_key");
+  const customUrl = localStorage.getItem("sb_url") || DEFAULT_SB_URL;
+  const customKey = localStorage.getItem("sb_key") || DEFAULT_SB_KEY;
 
   if (window.supabase && customUrl && customKey) {
     try {
       sb = window.supabase.createClient(customUrl, customKey);
       return;
     } catch(e) {
-      console.warn("Custom Supabase init failed:", e);
+      console.warn("Supabase init failed, using offline mode:", e);
     }
   }
+
 
   // Smart Mock Engine for offline preview & zero-crash fallback
   sb = {
