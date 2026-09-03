@@ -259,21 +259,23 @@ function syncAdminUI(){
   });
 }
 
-// Admin key sequence: Left Left Right Right
-const ADMIN_SEQ = ["ArrowLeft","ArrowLeft","ArrowRight","ArrowRight"];
+// Admin key sequence: Left, m, a, g, g, i, e, Right
+const ADMIN_SEQ = ["ArrowLeft","m","a","g","g","i","e","ArrowRight"];
 let seqBuf = [];
 window.addEventListener("keydown", e=>{
   if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
-  if (!ADMIN_SEQ.includes(e.key)) { seqBuf = []; return; }
-  seqBuf.push(e.key);
-  if (seqBuf.length > 4) seqBuf.shift();
-  if (seqBuf.length === 4 && seqBuf.every((k,i)=>k===ADMIN_SEQ[i])) {
+  const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  if (!ADMIN_SEQ.includes(key)) { seqBuf = []; return; }
+  seqBuf.push(key);
+  if (seqBuf.length > ADMIN_SEQ.length) seqBuf.shift();
+  if (seqBuf.length === ADMIN_SEQ.length && seqBuf.every((k,i)=>k===ADMIN_SEQ[i])) {
     seqBuf = [];
     isAdmin = !isAdmin;
     syncAdminUI();
     showToast(isAdmin ? "🛡️ ADMIN ACCESS GRANTED" : "Admin mode off");
   }
 });
+
 
 function switchTab(tab){
   const cv = document.getElementById("chatView");
