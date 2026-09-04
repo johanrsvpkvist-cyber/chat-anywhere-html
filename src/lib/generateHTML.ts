@@ -688,22 +688,60 @@ async function triggerSpin(){
   const winner = tops[seed % tops.length];
 
   await spinWheelAnim(winner);
-  handleWinner(winner.url, seed);
+  handleWinner(winner);
 
   setTimeout(()=>{
     rSpinning = false;
     preLinks = [];
     renderPreLinks();
-    document.getElementById("rouletteWinnerDisplay").textContent = "";
     document.getElementById("roulettePhaseContainer").className = "phase-mode-centered";
     document.getElementById("wheelContainer").className = "wheel-container-hidden";
-  }, 6000);
+  }, 12000);
 }
 
-function handleWinner(url, seed){
-  document.getElementById("rouletteWinnerDisplay").textContent = "🏆 " + url;
-  // Auto-open for everyone
-  setTimeout(()=>window.open(url,"_blank"), 500);
+let winnerPower = null; // { url, usesLeft }
+function handleWinner(winner){
+  const name = winner.submitterName || "User";
+  const tag = winner.submitter;
+  document.getElementById("rouletteWinnerDisplay").innerHTML = "🏆 <b>"+escapeHtml(name)+"</b> (#"+tag+") won with <span style='color:var(--accent-2)'>"+escapeHtml(winner.url)+"</span>";
+  showToast("🏆 Winner: "+name+" (#"+tag+")");
+  document.getElementById("rouletteOverlay").classList.add("open");
+  // If I'm the winner, unlock power panel
+  if (tag === userTag){
+    winnerPower = { url: winner.url, usesLeft: 1 };
+    showToast("🎯 You won! Pick a target to blast 3x","success");
+    renderWinnerPanel();
+  }
+}
+
+function renderWinnerPanel(){
+  const panel = document.getElementById("winnerPowerPanel");
+  const list = document.getElementById("winnerTargetList");
+  if (!winnerPower || winnerPower.usesLeft <= 0){ panel.style.display="none"; return; }
+  panel.style.display = "block";
+  list.innerHTML = "";
+  Object.values(onlineUsers).forEach(u=>{
+    if (u.tag === userTag) return;
+    const b = document.createElement("button");
+    b.style.cssText = "background:linear-gradient(145deg,rgba(255,155,255,.2),rgba(126,249,255,.15));border:1px solid rgba(255,155,255,.35);color:var(--text);padding:8px 12px;border-radius:8px;cursor:pointer;font-size:12px;text-align:left";
+    b.textContent = "🎯 Blast "+(u.username||"User")+" (#"+u.tag+")";
+    b.onclick = ()=>blastTarget(u.tag, u.username);
+    list.appendChild(b);
+  });
+  if (list.children.length === 0) list.innerHTML = '<div style="color:var(--muted);font-size:11px">No other users online.</div>';
+}
+
+async function blastTarget(tag, name){
+  if (!winnerPower || winnerPower.usesLeft <= 0) return;
+  const url = winnerPower.url;
+  winnerPower.usesLeft = 0;
+  for (let i=0;i<3;i++){
+    await sb.from("messages").insert({username:"System",content:"__SEND__:#"+tag+":"+url,user_tag:"0000"});
+    await new Promise(r=>setTimeout(r,400));
+  }
+  await postSystemMessage("🎯 "+username+" blasted "+name+" (#"+tag+") 3x with roulette link.");
+  showToast("Blasted #"+tag+" 3x");
+  renderWinnerPanel();
 }
 
 function spinWheelAnim(winner){
