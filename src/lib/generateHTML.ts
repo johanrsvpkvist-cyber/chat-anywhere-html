@@ -591,18 +591,25 @@ let preLinks = [];
 let roulettePhase = "IDLE";
 let lastCyclePhase = "IDLE";
 let rSpinning = false;
-const CYCLE_TOTAL_SEC = 145;
-const SUBMIT_START_SEC = 120;
-const VOTE_START_SEC = 135;
+const IDLE_SEC = 120;      // 2:00 countdown before each round
+const SUBMIT_SEC = 15;     // link submission window
+const VOTE_SEC = 10;       // voting window
+const CYCLE_TOTAL_SEC = IDLE_SEC + SUBMIT_SEC + VOTE_SEC; // 145
+const SUBMIT_START_SEC = IDLE_SEC;          // 120
+const VOTE_START_SEC = IDLE_SEC + SUBMIT_SEC; // 135
 
+function isRouletteLocked(){ return roulettePhase === "SUBMIT" || roulettePhase === "VOTE" || rSpinning; }
 function openRoulette(){ document.getElementById("rouletteOverlay").classList.add("open"); renderPreLinks(); }
-function closeRoulette(){ document.getElementById("rouletteOverlay").classList.remove("open"); }
+function closeRoulette(){
+  if (isRouletteLocked()){ showToast("🔒 Locked until round ends","error"); return; }
+  document.getElementById("rouletteOverlay").classList.remove("open");
+}
 
 async function submitPreLink(){
   const inp = document.getElementById("preLinkInput");
   const url = inp.value.trim();
   if (!url) return;
-  if (roulettePhase !== "SUBMIT" && roulettePhase !== "IDLE"){ showToast("Submissions closed","error"); return; }
+  if (roulettePhase !== "SUBMIT"){ showToast("Submissions closed","error"); return; }
   // one link per user — replace their prior entry
   preLinks = preLinks.filter(p=>p.submitter!==userTag);
   const item = { id: userTag+"-"+Date.now(), url, submitter: userTag, submitterName: username, votes: {} };
@@ -612,10 +619,12 @@ async function submitPreLink(){
   if (rouletteChannel) await rouletteChannel.send({ type:"broadcast", event:"submit", payload:item });
   showToast("Link submitted");
 }
-
+...
+    lastCyclePhase = phase;
+// restored
 async function votePreLink(id){
   const p = preLinks.find(x=>x.id===id); if (!p) return;
-  // one vote per user — clear from every other link first
+  if (roulettePhase !== "VOTE"){ showToast("Voting closed","error"); return; }
   preLinks.forEach(x=>{ if (x.votes) delete x.votes[userTag]; });
   p.votes = p.votes||{}; p.votes[userTag] = 1;
   renderPreLinks();
@@ -646,20 +655,20 @@ function syncRouletteClock(){
     const cycleSec = nowSec % CYCLE_TOTAL_SEC;
     const badge = document.getElementById("rouletteTimerBadge");
     const big = document.getElementById("bigCountdownDisplay");
-    let remaining, phase, banner, allow;
-    if (cycleSec < SUBMIT_START_SEC){ remaining = SUBMIT_START_SEC - cycleSec; phase="IDLE"; banner="⏳ NEXT ROUND IN"; allow=true; }
-    else if (cycleSec < VOTE_START_SEC){ remaining = VOTE_START_SEC - cycleSec; phase="SUBMIT"; banner="🔗 SUBMIT LINKS"; allow=true; }
-    else { remaining = CYCLE_TOTAL_SEC - cycleSec; phase="VOTE"; banner="👍 VOTE"; allow=false; }
+    let remaining, phase, banner, canSubmit;
+    if (cycleSec < SUBMIT_START_SEC){ remaining = SUBMIT_START_SEC - cycleSec; phase="IDLE"; banner="⏳ NEXT ROUND IN"; canSubmit=false; }
+    else if (cycleSec < VOTE_START_SEC){ remaining = VOTE_START_SEC - cycleSec; phase="SUBMIT"; banner="🔗 SUBMIT LINK (15s)"; canSubmit=true; }
+    else { remaining = CYCLE_TOTAL_SEC - cycleSec; phase="VOTE"; banner="👍 VOTE (10s)"; canSubmit=false; }
     const m = Math.floor(remaining/60), s = String(remaining%60).padStart(2,"0");
     const t = m+":"+s;
     badge.textContent = t; big.textContent = t;
 
     if (phase !== roulettePhase){
       if (phase === "SUBMIT"){
-        showToast("🔗 Submit your link!");
+        showToast("🔗 Submit your link! (15s)");
         document.getElementById("rouletteOverlay").classList.add("open");
       } else if (phase === "VOTE"){
-        showToast("👍 Vote now!");
+        showToast("👍 Vote now! (10s)");
         document.getElementById("rouletteOverlay").classList.add("open");
       } else if (phase === "IDLE" && lastCyclePhase === "VOTE"){
         document.getElementById("rouletteOverlay").classList.add("open");
@@ -668,8 +677,8 @@ function syncRouletteClock(){
       roulettePhase = phase;
     }
     document.getElementById("phaseTitle").textContent = banner;
-    document.getElementById("preLinkInput").disabled = !allow;
-    document.getElementById("preLinkSubmitBtn").disabled = !allow;
+    document.getElementById("preLinkInput").disabled = !canSubmit;
+    document.getElementById("preLinkSubmitBtn").disabled = !canSubmit;
     lastCyclePhase = phase;
   }, 500);
 }
