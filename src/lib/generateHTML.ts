@@ -621,6 +621,65 @@ async function submitPreLink(){
 }
 ...
     lastCyclePhase = phase;
+// restored
+async function votePreLink(id){
+  const p = preLinks.find(x=>x.id===id); if (!p) return;
+  if (roulettePhase !== "VOTE"){ showToast("Voting closed","error"); return; }
+  preLinks.forEach(x=>{ if (x.votes) delete x.votes[userTag]; });
+  p.votes = p.votes||{}; p.votes[userTag] = 1;
+  renderPreLinks();
+  if (rouletteChannel) await rouletteChannel.send({ type:"broadcast", event:"vote", payload:{ id, voter:userTag }});
+}
+
+function renderPreLinks(){
+  const list = document.getElementById("preLinkList");
+  if (!list) return;
+  const maxVotes = Math.max(0, ...preLinks.map(p=>Object.keys(p.votes||{}).length));
+  list.innerHTML = "";
+  if (preLinks.length === 0){ list.innerHTML = '<div style="color:var(--muted);font-size:11px;text-align:center;padding:8px">No links yet</div>'; return; }
+  preLinks.forEach(p=>{
+    const votes = Object.keys(p.votes||{}).length;
+    const voted = p.votes && p.votes[userTag];
+    const top = votes>0 && votes===maxVotes;
+    const row = document.createElement("div");
+    row.className = "prelink-item"+(top?" top-voted":"");
+    row.innerHTML = '<a class="prelink-url" href="'+escapeHtml(p.url)+'" target="_blank">'+escapeHtml(p.url)+'</a>'+
+      '<button class="prelink-vote-btn'+(voted?" voted":"")+'" onclick="votePreLink(\\''+p.id+'\\')">👍 '+votes+'</button>';
+    list.appendChild(row);
+  });
+}
+
+function syncRouletteClock(){
+  setInterval(()=>{
+    const nowSec = Math.floor(Date.now()/1000);
+    const cycleSec = nowSec % CYCLE_TOTAL_SEC;
+    const badge = document.getElementById("rouletteTimerBadge");
+    const big = document.getElementById("bigCountdownDisplay");
+    let remaining, phase, banner, canSubmit;
+    if (cycleSec < SUBMIT_START_SEC){ remaining = SUBMIT_START_SEC - cycleSec; phase="IDLE"; banner="⏳ NEXT ROUND IN"; canSubmit=false; }
+    else if (cycleSec < VOTE_START_SEC){ remaining = VOTE_START_SEC - cycleSec; phase="SUBMIT"; banner="🔗 SUBMIT LINK (15s)"; canSubmit=true; }
+    else { remaining = CYCLE_TOTAL_SEC - cycleSec; phase="VOTE"; banner="👍 VOTE (10s)"; canSubmit=false; }
+    const m = Math.floor(remaining/60), s = String(remaining%60).padStart(2,"0");
+    const t = m+":"+s;
+    badge.textContent = t; big.textContent = t;
+
+    if (phase !== roulettePhase){
+      if (phase === "SUBMIT"){
+        showToast("🔗 Submit your link! (15s)");
+        document.getElementById("rouletteOverlay").classList.add("open");
+      } else if (phase === "VOTE"){
+        showToast("👍 Vote now! (10s)");
+        document.getElementById("rouletteOverlay").classList.add("open");
+      } else if (phase === "IDLE" && lastCyclePhase === "VOTE"){
+        document.getElementById("rouletteOverlay").classList.add("open");
+        triggerSpin();
+      }
+      roulettePhase = phase;
+    }
+    document.getElementById("phaseTitle").textContent = banner;
+    document.getElementById("preLinkInput").disabled = !canSubmit;
+    document.getElementById("preLinkSubmitBtn").disabled = !canSubmit;
+    lastCyclePhase = phase;
   }, 500);
 }
 
