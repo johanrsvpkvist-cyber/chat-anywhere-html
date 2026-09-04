@@ -486,12 +486,15 @@ function initRealtime(){
   // Roulette broadcast
   rouletteChannel = sb.channel("roulette:openchat", { config:{ broadcast:{ self:false } } });
   rouletteChannel.on("broadcast",{event:"submit"}, ({payload})=>{
-    if (!preLinks.find(p=>p.id===payload.id)) { preLinks.push({...payload, votes:{}}); renderPreLinks(); }
+    // one link per user: replace prior submission by same submitter
+    preLinks = preLinks.filter(p=>p.submitter!==payload.submitter);
+    preLinks.push({...payload, votes:{}});
+    renderPreLinks();
   }).on("broadcast",{event:"vote"}, ({payload})=>{
+    // one vote per user: clear voter from all other links
+    preLinks.forEach(p=>{ if (p.votes) delete p.votes[payload.voter]; });
     const p = preLinks.find(x=>x.id===payload.id);
     if (p){ p.votes = p.votes||{}; p.votes[payload.voter] = 1; renderPreLinks(); }
-  }).on("broadcast",{event:"winner"}, ({payload})=>{
-    handleWinner(payload.url, payload.seed);
   }).subscribe();
 }
 
