@@ -206,8 +206,12 @@ body{font-family:'Inter',system-ui,sans-serif;background:radial-gradient(circle 
       <canvas id="rouletteCanvas" width="340" height="340" style="border-radius:50%;box-shadow:0 0 30px rgba(126,249,255,.2)"></canvas>
     </div>
     <div id="rouletteWinnerDisplay" style="min-height:28px;font-weight:bold;color:var(--accent);margin-bottom:12px;text-shadow:0 0 10px var(--accent)"></div>
+    <div id="winnerPowerPanel" style="display:none;background:rgba(255,155,255,.08);border:1px solid rgba(255,155,255,.35);padding:12px;border-radius:12px;margin-bottom:12px;text-align:left">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.15em;color:var(--accent-2);margin-bottom:8px">🏆 You won! Pick a target — they will be sent to your link 3 times.</div>
+      <div id="winnerTargetList" style="max-height:160px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+    </div>
     <div style="background:rgba(16,28,54,.7);padding:12px;border-radius:12px;border:1px solid rgba(126,249,255,.25);text-align:left">
-      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);margin-bottom:8px">Link Pool</div>
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);margin-bottom:8px">Link Pool <span style="color:var(--accent-2)">(1 link + 1 vote per user)</span></div>
       <div id="preLinkList" style="max-height:160px;overflow-y:auto;margin-bottom:10px"></div>
       <div style="display:flex;gap:6px">
         <input type="text" id="preLinkInput" placeholder="Paste URL to submit..." style="flex:1;background:rgba(0,0,0,.3);border:1px solid rgba(126,249,255,.2);color:var(--text);padding:8px 10px;border-radius:6px;font-size:12px;outline:none">
