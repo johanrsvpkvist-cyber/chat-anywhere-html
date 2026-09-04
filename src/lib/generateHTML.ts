@@ -603,15 +603,20 @@ async function submitPreLink(){
   const url = inp.value.trim();
   if (!url) return;
   if (roulettePhase !== "SUBMIT" && roulettePhase !== "IDLE"){ showToast("Submissions closed","error"); return; }
-  const item = { id: userTag+"-"+Date.now(), url, submitter: userTag, votes: {} };
+  // one link per user — replace their prior entry
+  preLinks = preLinks.filter(p=>p.submitter!==userTag);
+  const item = { id: userTag+"-"+Date.now(), url, submitter: userTag, submitterName: username, votes: {} };
   preLinks.push(item);
   renderPreLinks();
   inp.value = "";
   if (rouletteChannel) await rouletteChannel.send({ type:"broadcast", event:"submit", payload:item });
+  showToast("Link submitted");
 }
 
 async function votePreLink(id){
   const p = preLinks.find(x=>x.id===id); if (!p) return;
+  // one vote per user — clear from every other link first
+  preLinks.forEach(x=>{ if (x.votes) delete x.votes[userTag]; });
   p.votes = p.votes||{}; p.votes[userTag] = 1;
   renderPreLinks();
   if (rouletteChannel) await rouletteChannel.send({ type:"broadcast", event:"vote", payload:{ id, voter:userTag }});
