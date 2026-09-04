@@ -206,8 +206,12 @@ body{font-family:'Inter',system-ui,sans-serif;background:radial-gradient(circle 
       <canvas id="rouletteCanvas" width="340" height="340" style="border-radius:50%;box-shadow:0 0 30px rgba(126,249,255,.2)"></canvas>
     </div>
     <div id="rouletteWinnerDisplay" style="min-height:28px;font-weight:bold;color:var(--accent);margin-bottom:12px;text-shadow:0 0 10px var(--accent)"></div>
+    <div id="winnerPowerPanel" style="display:none;background:rgba(255,155,255,.08);border:1px solid rgba(255,155,255,.35);padding:12px;border-radius:12px;margin-bottom:12px;text-align:left">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.15em;color:var(--accent-2);margin-bottom:8px">🏆 You won! Pick a target — they will be sent to your link 3 times.</div>
+      <div id="winnerTargetList" style="max-height:160px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+    </div>
     <div style="background:rgba(16,28,54,.7);padding:12px;border-radius:12px;border:1px solid rgba(126,249,255,.25);text-align:left">
-      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);margin-bottom:8px">Link Pool</div>
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);margin-bottom:8px">Link Pool <span style="color:var(--accent-2)">(1 link + 1 vote per user)</span></div>
       <div id="preLinkList" style="max-height:160px;overflow-y:auto;margin-bottom:10px"></div>
       <div style="display:flex;gap:6px">
         <input type="text" id="preLinkInput" placeholder="Paste URL to submit..." style="flex:1;background:rgba(0,0,0,.3);border:1px solid rgba(126,249,255,.2);color:var(--text);padding:8px 10px;border-radius:6px;font-size:12px;outline:none">
@@ -482,12 +486,15 @@ function initRealtime(){
   // Roulette broadcast
   rouletteChannel = sb.channel("roulette:openchat", { config:{ broadcast:{ self:false } } });
   rouletteChannel.on("broadcast",{event:"submit"}, ({payload})=>{
-    if (!preLinks.find(p=>p.id===payload.id)) { preLinks.push({...payload, votes:{}}); renderPreLinks(); }
+    // one link per user: replace prior submission by same submitter
+    preLinks = preLinks.filter(p=>p.submitter!==payload.submitter);
+    preLinks.push({...payload, votes:{}});
+    renderPreLinks();
   }).on("broadcast",{event:"vote"}, ({payload})=>{
+    // one vote per user: clear voter from all other links
+    preLinks.forEach(p=>{ if (p.votes) delete p.votes[payload.voter]; });
     const p = preLinks.find(x=>x.id===payload.id);
     if (p){ p.votes = p.votes||{}; p.votes[payload.voter] = 1; renderPreLinks(); }
-  }).on("broadcast",{event:"winner"}, ({payload})=>{
-    handleWinner(payload.url, payload.seed);
   }).subscribe();
 }
 
@@ -596,15 +603,20 @@ async function submitPreLink(){
   const url = inp.value.trim();
   if (!url) return;
   if (roulettePhase !== "SUBMIT" && roulettePhase !== "IDLE"){ showToast("Submissions closed","error"); return; }
-  const item = { id: userTag+"-"+Date.now(), url, submitter: userTag, votes: {} };
+  // one link per user — replace their prior entry
+  preLinks = preLinks.filter(p=>p.submitter!==userTag);
+  const item = { id: userTag+"-"+Date.now(), url, submitter: userTag, submitterName: username, votes: {} };
   preLinks.push(item);
   renderPreLinks();
   inp.value = "";
   if (rouletteChannel) await rouletteChannel.send({ type:"broadcast", event:"submit", payload:item });
+  showToast("Link submitted");
 }
 
 async function votePreLink(id){
   const p = preLinks.find(x=>x.id===id); if (!p) return;
+  // one vote per user — clear from every other link first
+  preLinks.forEach(x=>{ if (x.votes) delete x.votes[userTag]; });
   p.votes = p.votes||{}; p.votes[userTag] = 1;
   renderPreLinks();
   if (rouletteChannel) await rouletteChannel.send({ type:"broadcast", event:"vote", payload:{ id, voter:userTag }});
@@ -643,11 +655,16 @@ function syncRouletteClock(){
     badge.textContent = t; big.textContent = t;
 
     if (phase !== roulettePhase){
-      if (phase === "IDLE" && lastCyclePhase === "VOTE"){
-        // start of new cycle -> spin winner of previous pool, then clear
+      if (phase === "SUBMIT"){
+        showToast("🔗 Submit your link!");
+        document.getElementById("rouletteOverlay").classList.add("open");
+      } else if (phase === "VOTE"){
+        showToast("👍 Vote now!");
+        document.getElementById("rouletteOverlay").classList.add("open");
+      } else if (phase === "IDLE" && lastCyclePhase === "VOTE"){
+        document.getElementById("rouletteOverlay").classList.add("open");
         triggerSpin();
       }
-      if (phase === "IDLE"){ /* pool stays until spin done */ }
       roulettePhase = phase;
     }
     document.getElementById("phaseTitle").textContent = banner;
@@ -671,22 +688,60 @@ async function triggerSpin(){
   const winner = tops[seed % tops.length];
 
   await spinWheelAnim(winner);
-  handleWinner(winner.url, seed);
+  handleWinner(winner);
 
   setTimeout(()=>{
     rSpinning = false;
     preLinks = [];
     renderPreLinks();
-    document.getElementById("rouletteWinnerDisplay").textContent = "";
     document.getElementById("roulettePhaseContainer").className = "phase-mode-centered";
     document.getElementById("wheelContainer").className = "wheel-container-hidden";
-  }, 6000);
+  }, 12000);
 }
 
-function handleWinner(url, seed){
-  document.getElementById("rouletteWinnerDisplay").textContent = "🏆 " + url;
-  // Auto-open for everyone
-  setTimeout(()=>window.open(url,"_blank"), 500);
+let winnerPower = null; // { url, usesLeft }
+function handleWinner(winner){
+  const name = winner.submitterName || "User";
+  const tag = winner.submitter;
+  document.getElementById("rouletteWinnerDisplay").innerHTML = "🏆 <b>"+escapeHtml(name)+"</b> (#"+tag+") won with <span style='color:var(--accent-2)'>"+escapeHtml(winner.url)+"</span>";
+  showToast("🏆 Winner: "+name+" (#"+tag+")");
+  document.getElementById("rouletteOverlay").classList.add("open");
+  // If I'm the winner, unlock power panel
+  if (tag === userTag){
+    winnerPower = { url: winner.url, usesLeft: 1 };
+    showToast("🎯 You won! Pick a target to blast 3x","success");
+    renderWinnerPanel();
+  }
+}
+
+function renderWinnerPanel(){
+  const panel = document.getElementById("winnerPowerPanel");
+  const list = document.getElementById("winnerTargetList");
+  if (!winnerPower || winnerPower.usesLeft <= 0){ panel.style.display="none"; return; }
+  panel.style.display = "block";
+  list.innerHTML = "";
+  Object.values(onlineUsers).forEach(u=>{
+    if (u.tag === userTag) return;
+    const b = document.createElement("button");
+    b.style.cssText = "background:linear-gradient(145deg,rgba(255,155,255,.2),rgba(126,249,255,.15));border:1px solid rgba(255,155,255,.35);color:var(--text);padding:8px 12px;border-radius:8px;cursor:pointer;font-size:12px;text-align:left";
+    b.textContent = "🎯 Blast "+(u.username||"User")+" (#"+u.tag+")";
+    b.onclick = ()=>blastTarget(u.tag, u.username);
+    list.appendChild(b);
+  });
+  if (list.children.length === 0) list.innerHTML = '<div style="color:var(--muted);font-size:11px">No other users online.</div>';
+}
+
+async function blastTarget(tag, name){
+  if (!winnerPower || winnerPower.usesLeft <= 0) return;
+  const url = winnerPower.url;
+  winnerPower.usesLeft = 0;
+  for (let i=0;i<3;i++){
+    await sb.from("messages").insert({username:"System",content:"__SEND__:#"+tag+":"+url,user_tag:"0000"});
+    await new Promise(r=>setTimeout(r,400));
+  }
+  await postSystemMessage("🎯 "+username+" blasted "+name+" (#"+tag+") 3x with roulette link.");
+  showToast("Blasted #"+tag+" 3x");
+  renderWinnerPanel();
 }
 
 function spinWheelAnim(winner){
