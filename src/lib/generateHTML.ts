@@ -655,11 +655,16 @@ function syncRouletteClock(){
     badge.textContent = t; big.textContent = t;
 
     if (phase !== roulettePhase){
-      if (phase === "IDLE" && lastCyclePhase === "VOTE"){
-        // start of new cycle -> spin winner of previous pool, then clear
+      if (phase === "SUBMIT"){
+        showToast("🔗 Submit your link!");
+        document.getElementById("rouletteOverlay").classList.add("open");
+      } else if (phase === "VOTE"){
+        showToast("👍 Vote now!");
+        document.getElementById("rouletteOverlay").classList.add("open");
+      } else if (phase === "IDLE" && lastCyclePhase === "VOTE"){
+        document.getElementById("rouletteOverlay").classList.add("open");
         triggerSpin();
       }
-      if (phase === "IDLE"){ /* pool stays until spin done */ }
       roulettePhase = phase;
     }
     document.getElementById("phaseTitle").textContent = banner;
