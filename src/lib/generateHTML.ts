@@ -705,7 +705,9 @@ async function triggerSpin(){
     renderPreLinks();
     document.getElementById("roulettePhaseContainer").className = "phase-mode-centered";
     document.getElementById("wheelContainer").className = "wheel-container-hidden";
+    document.getElementById("rouletteOverlay").classList.remove("open");
   }, 12000);
+
 }
 
 let winnerPower = null; // { url, usesLeft }
