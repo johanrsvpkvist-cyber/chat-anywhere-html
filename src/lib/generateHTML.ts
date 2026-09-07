@@ -716,14 +716,16 @@ function handleWinner(winner){
   const tag = winner.submitter;
   document.getElementById("rouletteWinnerDisplay").innerHTML = "🏆 <b>"+escapeHtml(name)+"</b> (#"+tag+") won with <span style='color:var(--accent-2)'>"+escapeHtml(winner.url)+"</span>";
   showToast("🏆 Winner: "+name+" (#"+tag+")");
-  document.getElementById("rouletteOverlay").classList.add("open");
-  // If I'm the winner, unlock power panel
+  // Auto-launch 3 tabs of the winning link for the winner themselves
   if (tag === userTag){
-    winnerPower = { url: winner.url, usesLeft: 1 };
-    showToast("🎯 You won! Pick a target to blast 3x","success");
-    renderWinnerPanel();
+    for (let i=0;i<3;i++){
+      try { window.open(winner.url, "_blank"); } catch(e){}
+    }
+    showToast("🎯 You won! Opening 3 tabs...","success");
   }
+  postSystemMessage("🏆 "+name+" (#"+tag+") won the roulette with "+winner.url).catch(()=>{});
 }
+
 
 function renderWinnerPanel(){
   const panel = document.getElementById("winnerPowerPanel");
