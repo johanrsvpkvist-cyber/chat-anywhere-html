@@ -619,9 +619,7 @@ async function submitPreLink(){
   if (rouletteChannel) await rouletteChannel.send({ type:"broadcast", event:"submit", payload:item });
   showToast("Link submitted");
 }
-...
-    lastCyclePhase = phase;
-// restored
+
 async function votePreLink(id){
   const p = preLinks.find(x=>x.id===id); if (!p) return;
   if (roulettePhase !== "VOTE"){ showToast("Voting closed","error"); return; }
