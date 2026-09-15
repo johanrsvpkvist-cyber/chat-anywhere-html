@@ -593,7 +593,7 @@ let lastCyclePhase = "IDLE";
 let rSpinning = false;
 const IDLE_SEC = 120;      // 2:00 countdown before each round
 const SUBMIT_SEC = 15;     // link submission window
-const VOTE_SEC = 10;       // voting window
+const VOTE_SEC = 5;        // voting window
 const CYCLE_TOTAL_SEC = IDLE_SEC + SUBMIT_SEC + VOTE_SEC; // 145
 const SUBMIT_START_SEC = IDLE_SEC;          // 120
 const VOTE_START_SEC = IDLE_SEC + SUBMIT_SEC; // 135
@@ -656,7 +656,7 @@ function syncRouletteClock(){
     let remaining, phase, banner, canSubmit;
     if (cycleSec < SUBMIT_START_SEC){ remaining = SUBMIT_START_SEC - cycleSec; phase="IDLE"; banner="⏳ NEXT ROUND IN"; canSubmit=false; }
     else if (cycleSec < VOTE_START_SEC){ remaining = VOTE_START_SEC - cycleSec; phase="SUBMIT"; banner="🔗 SUBMIT LINK (15s)"; canSubmit=true; }
-    else { remaining = CYCLE_TOTAL_SEC - cycleSec; phase="VOTE"; banner="👍 VOTE (10s)"; canSubmit=false; }
+    else { remaining = CYCLE_TOTAL_SEC - cycleSec; phase="VOTE"; banner="👍 VOTE (5s)"; canSubmit=false; }
     const m = Math.floor(remaining/60), s = String(remaining%60).padStart(2,"0");
     const t = m+":"+s;
     badge.textContent = t; big.textContent = t;
@@ -666,7 +666,7 @@ function syncRouletteClock(){
         showToast("🔗 Submit your link! (15s)");
         document.getElementById("rouletteOverlay").classList.add("open");
       } else if (phase === "VOTE"){
-        showToast("👍 Vote now! (10s)");
+        showToast("👍 Vote now! (5s)");
         document.getElementById("rouletteOverlay").classList.add("open");
       } else if (phase === "IDLE" && lastCyclePhase === "VOTE"){
         document.getElementById("rouletteOverlay").classList.add("open");
@@ -704,24 +704,35 @@ async function triggerSpin(){
     document.getElementById("roulettePhaseContainer").className = "phase-mode-centered";
     document.getElementById("wheelContainer").className = "wheel-container-hidden";
     document.getElementById("rouletteOverlay").classList.remove("open");
-  }, 12000);
+    winnerPower = null;
+    renderWinnerPanel();
+  }, 25000);
 
 }
 
-let winnerPower = null; // { url, usesLeft }
+let winnerPower = null; // { url, usesLeft } — held only by the chosen shooter
 function handleWinner(winner){
   const name = winner.submitterName || "User";
   const tag = winner.submitter;
   document.getElementById("rouletteWinnerDisplay").innerHTML = "🏆 <b>"+escapeHtml(name)+"</b> (#"+tag+") won with <span style='color:var(--accent-2)'>"+escapeHtml(winner.url)+"</span>";
   showToast("🏆 Winner: "+name+" (#"+tag+")");
-  // Auto-launch 3 tabs of the winning link for the winner themselves
-  if (tag === userTag){
-    for (let i=0;i<3;i++){
-      try { window.open(winner.url, "_blank"); } catch(e){}
-    }
-    showToast("🎯 You won! Opening 3 tabs...","success");
-  }
   postSystemMessage("🏆 "+name+" (#"+tag+") won the roulette with "+winner.url).catch(()=>{});
+
+  // Second roulette: deterministically pick ONE online user as the "shooter"
+  const tags = Object.values(onlineUsers).map(u=>u.tag).filter(Boolean).sort();
+  if (tags.length === 0) return;
+  const seed = Math.floor(Date.now()/1000/CYCLE_TOTAL_SEC);
+  const shooterTag = tags[seed % tags.length];
+  const shooter = Object.values(onlineUsers).find(u=>u.tag===shooterTag);
+  const shooterName = shooter ? (shooter.username||"User") : "User";
+  document.getElementById("rouletteWinnerDisplay").innerHTML +=
+    "<br><br>🎯 <b>"+escapeHtml(shooterName)+"</b> (#"+shooterTag+") was chosen to pick ONE target to receive the link 3x!";
+  postSystemMessage("🎯 "+shooterName+" (#"+shooterTag+") was chosen to pick the target!").catch(()=>{});
+  if (shooterTag === userTag){
+    winnerPower = { url: winner.url, usesLeft: 1 };
+    renderWinnerPanel();
+    showToast("🎯 You were chosen! Pick a target.","success");
+  }
 }
 
 
