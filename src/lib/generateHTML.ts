@@ -598,7 +598,7 @@ const CYCLE_TOTAL_SEC = IDLE_SEC + SUBMIT_SEC + VOTE_SEC; // 43
 const SUBMIT_START_SEC = IDLE_SEC;          // 30
 const VOTE_START_SEC = IDLE_SEC + SUBMIT_SEC; // 40
 
-function isRouletteLocked(){ return roulettePhase === "SUBMIT" || roulettePhase === "VOTE" || rSpinning; }
+function isRouletteLocked(){ return roulettePhase === "SUBMIT" || roulettePhase === "VOTE" || rSpinning || (winnerPower && winnerPower.usesLeft > 0); }
 function openRoulette(){ document.getElementById("rouletteOverlay").classList.add("open"); renderPreLinks(); }
 function closeRoulette(){
   if (isRouletteLocked()){ showToast("🔒 Locked until round ends","error"); return; }
