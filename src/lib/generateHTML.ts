@@ -591,12 +591,12 @@ let preLinks = [];
 let roulettePhase = "IDLE";
 let lastCyclePhase = "IDLE";
 let rSpinning = false;
-const IDLE_SEC = 120;      // 2:00 countdown before each round
-const SUBMIT_SEC = 15;     // link submission window
-const VOTE_SEC = 5;        // voting window
-const CYCLE_TOTAL_SEC = IDLE_SEC + SUBMIT_SEC + VOTE_SEC; // 145
-const SUBMIT_START_SEC = IDLE_SEC;          // 120
-const VOTE_START_SEC = IDLE_SEC + SUBMIT_SEC; // 135
+const IDLE_SEC = 30;      // 0:30 countdown before each round
+const SUBMIT_SEC = 10;     // link submission window
+const VOTE_SEC = 3;        // voting window
+const CYCLE_TOTAL_SEC = IDLE_SEC + SUBMIT_SEC + VOTE_SEC; // 43
+const SUBMIT_START_SEC = IDLE_SEC;          // 30
+const VOTE_START_SEC = IDLE_SEC + SUBMIT_SEC; // 40
 
 function isRouletteLocked(){ return roulettePhase === "SUBMIT" || roulettePhase === "VOTE" || rSpinning; }
 function openRoulette(){ document.getElementById("rouletteOverlay").classList.add("open"); renderPreLinks(); }
