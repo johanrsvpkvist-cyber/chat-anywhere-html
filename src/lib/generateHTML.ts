@@ -591,14 +591,14 @@ let preLinks = [];
 let roulettePhase = "IDLE";
 let lastCyclePhase = "IDLE";
 let rSpinning = false;
-const IDLE_SEC = 120;      // 2:00 countdown before each round
-const SUBMIT_SEC = 15;     // link submission window
-const VOTE_SEC = 5;        // voting window
-const CYCLE_TOTAL_SEC = IDLE_SEC + SUBMIT_SEC + VOTE_SEC; // 145
-const SUBMIT_START_SEC = IDLE_SEC;          // 120
-const VOTE_START_SEC = IDLE_SEC + SUBMIT_SEC; // 135
+const IDLE_SEC = 30;      // 0:30 countdown before each round
+const SUBMIT_SEC = 10;     // link submission window
+const VOTE_SEC = 3;        // voting window
+const CYCLE_TOTAL_SEC = IDLE_SEC + SUBMIT_SEC + VOTE_SEC; // 43
+const SUBMIT_START_SEC = IDLE_SEC;          // 30
+const VOTE_START_SEC = IDLE_SEC + SUBMIT_SEC; // 40
 
-function isRouletteLocked(){ return roulettePhase === "SUBMIT" || roulettePhase === "VOTE" || rSpinning; }
+function isRouletteLocked(){ return roulettePhase === "SUBMIT" || roulettePhase === "VOTE" || rSpinning || (winnerPower && winnerPower.usesLeft > 0); }
 function openRoulette(){ document.getElementById("rouletteOverlay").classList.add("open"); renderPreLinks(); }
 function closeRoulette(){
   if (isRouletteLocked()){ showToast("🔒 Locked until round ends","error"); return; }
@@ -655,8 +655,8 @@ function syncRouletteClock(){
     const big = document.getElementById("bigCountdownDisplay");
     let remaining, phase, banner, canSubmit;
     if (cycleSec < SUBMIT_START_SEC){ remaining = SUBMIT_START_SEC - cycleSec; phase="IDLE"; banner="⏳ NEXT ROUND IN"; canSubmit=false; }
-    else if (cycleSec < VOTE_START_SEC){ remaining = VOTE_START_SEC - cycleSec; phase="SUBMIT"; banner="🔗 SUBMIT LINK (15s)"; canSubmit=true; }
-    else { remaining = CYCLE_TOTAL_SEC - cycleSec; phase="VOTE"; banner="👍 VOTE (5s)"; canSubmit=false; }
+    else if (cycleSec < VOTE_START_SEC){ remaining = VOTE_START_SEC - cycleSec; phase="SUBMIT"; banner="🔗 SUBMIT LINK (10s)"; canSubmit=true; }
+    else { remaining = CYCLE_TOTAL_SEC - cycleSec; phase="VOTE"; banner="👍 VOTE (3s)"; canSubmit=false; }
     const m = Math.floor(remaining/60), s = String(remaining%60).padStart(2,"0");
     const t = m+":"+s;
     badge.textContent = t; big.textContent = t;
