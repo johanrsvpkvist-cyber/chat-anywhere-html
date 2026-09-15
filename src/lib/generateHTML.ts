@@ -655,8 +655,8 @@ function syncRouletteClock(){
     const big = document.getElementById("bigCountdownDisplay");
     let remaining, phase, banner, canSubmit;
     if (cycleSec < SUBMIT_START_SEC){ remaining = SUBMIT_START_SEC - cycleSec; phase="IDLE"; banner="⏳ NEXT ROUND IN"; canSubmit=false; }
-    else if (cycleSec < VOTE_START_SEC){ remaining = VOTE_START_SEC - cycleSec; phase="SUBMIT"; banner="🔗 SUBMIT LINK (15s)"; canSubmit=true; }
-    else { remaining = CYCLE_TOTAL_SEC - cycleSec; phase="VOTE"; banner="👍 VOTE (5s)"; canSubmit=false; }
+    else if (cycleSec < VOTE_START_SEC){ remaining = VOTE_START_SEC - cycleSec; phase="SUBMIT"; banner="🔗 SUBMIT LINK (10s)"; canSubmit=true; }
+    else { remaining = CYCLE_TOTAL_SEC - cycleSec; phase="VOTE"; banner="👍 VOTE (3s)"; canSubmit=false; }
     const m = Math.floor(remaining/60), s = String(remaining%60).padStart(2,"0");
     const t = m+":"+s;
     badge.textContent = t; big.textContent = t;
