@@ -663,10 +663,10 @@ function syncRouletteClock(){
 
     if (phase !== roulettePhase){
       if (phase === "SUBMIT"){
-        showToast("🔗 Submit your link! (15s)");
+        showToast("🔗 Submit your link! (10s)");
         document.getElementById("rouletteOverlay").classList.add("open");
       } else if (phase === "VOTE"){
-        showToast("👍 Vote now! (5s)");
+        showToast("👍 Vote now! (3s)");
         document.getElementById("rouletteOverlay").classList.add("open");
       } else if (phase === "IDLE" && lastCyclePhase === "VOTE"){
         document.getElementById("rouletteOverlay").classList.add("open");
@@ -706,7 +706,7 @@ async function triggerSpin(){
     document.getElementById("rouletteOverlay").classList.remove("open");
     winnerPower = null;
     renderWinnerPanel();
-  }, 25000);
+  }, 6000);
 
 }
 
@@ -775,7 +775,7 @@ function spinWheelAnim(winner){
     const winIdx = preLinks.indexOf(winner);
     const arc = (Math.PI*2)/N;
     const targetAngle = (Math.PI*2*5) + (Math.PI*1.5 - (winIdx*arc + arc/2));
-    const dur = 4000;
+    const dur = 1800;
     const start = performance.now();
     function frame(now){
       const t = Math.min(1, (now-start)/dur);
