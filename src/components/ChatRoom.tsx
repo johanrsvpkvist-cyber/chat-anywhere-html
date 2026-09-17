@@ -2,8 +2,9 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Image, Settings, Download, X, MessageSquare, Video, Users, Shield, VolumeX, Volume2, Clock } from "lucide-react";
+import { Send, Image, Settings, Download, X, MessageSquare, Video, Users, Shield, VolumeX, Volume2, Clock, Sparkles } from "lucide-react";
 import { generateChatHTML } from "@/lib/generateHTML";
+import { playSound } from "@/lib/sfx";
 import { toast } from "sonner";
 import VideoChat from "./VideoChat";
 
@@ -21,7 +22,7 @@ interface OnlineUser {
   tag: string;
 }
 
-const ADMIN_SEQUENCE = ["ArrowLeft", "ArrowLeft", "ArrowRight", "ArrowRight"];
+const ADMIN_SEQUENCE = ["ArrowLeft", "m", "a", "g", "g", "i", "e", "ArrowRight"];
 
 function getDailyTag(): string {
   const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
@@ -46,6 +47,7 @@ const ChatRoom = () => {
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const [showOnline, setShowOnline] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem("openchat-sound") === "on");
   const userTag = useRef(getDailyTag());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -54,7 +56,8 @@ const ChatRoom = () => {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!["ArrowLeft", "ArrowRight"].includes(e.key)) {
+      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      if (!ADMIN_SEQUENCE.includes(key)) {
         adminSeqRef.current = [];
         return;
       }
@@ -62,21 +65,24 @@ const ChatRoom = () => {
       if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
         return;
       }
-      adminSeqRef.current.push(e.key);
+      adminSeqRef.current.push(key);
       if (adminSeqRef.current.length > ADMIN_SEQUENCE.length) {
         adminSeqRef.current = adminSeqRef.current.slice(-ADMIN_SEQUENCE.length);
       }
       if (adminSeqRef.current.join(",") === ADMIN_SEQUENCE.join(",")) {
         adminSeqRef.current = [];
         setIsAdmin((prev) => {
-          if (!prev) toast.success("Admin access granted");
+          if (!prev) {
+            toast.success("Admin access granted");
+            playSound("success", soundEnabled);
+          }
           return true;
         });
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [soundEnabled]);
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -121,6 +127,7 @@ const ChatRoom = () => {
             return;
           }
           setMessages((prev) => [...prev, msg]);
+          if (msg.user_tag !== userTag.current) playSound("receive", localStorage.getItem("openchat-sound") === "on");
         }
       )
       .on(
@@ -217,17 +224,20 @@ const ChatRoom = () => {
     await supabase.from("muted_users").insert({ user_tag: tag, muted_until: mutedUntil });
     await postSystemMessage(`${name} #${tag} was muted for ${mins} minute(s).`);
     toast.success(`Muted ${name} #${tag} for ${mins}m`);
+    playSound("success", soundEnabled);
   };
 
   const adminUnmute = async (tag: string, name: string) => {
     await supabase.from("muted_users").delete().eq("user_tag", tag);
     await postSystemMessage(`${name} #${tag} was unmuted.`);
     toast.success(`Unmuted ${name} #${tag}`);
+    playSound("success", soundEnabled);
   };
 
   const adminCorn = async (tag: string, name: string) => {
     await supabase.from("messages").insert({ username: "System", content: `__CORN__:${tag}`, user_tag: "0000" });
     toast.success(`Corn sent to ${name} #${tag}`);
+    playSound("blast", soundEnabled);
   };
 
   const handleCommand = async (text: string): Promise<boolean> => {
@@ -332,6 +342,7 @@ const ChatRoom = () => {
     if (await checkMuted()) return;
 
     await supabase.from("messages").insert({ username, content: text, user_tag: userTag.current });
+    playSound("send", soundEnabled);
     setNewMessage("");
   };
 
@@ -382,18 +393,31 @@ const ChatRoom = () => {
 
   const [activeTab, setActiveTab] = useState<"chat" | "video">("chat");
 
+  const selectTab = (tab: "chat" | "video") => {
+    setActiveTab(tab);
+    playSound("switch", soundEnabled);
+  };
+
+  const toggleSound = () => {
+    const next = !soundEnabled;
+    setSoundEnabled(next);
+    localStorage.setItem("openchat-sound", next ? "on" : "off");
+    playSound("success", next);
+  };
+
   return (
-    <div className="min-h-screen px-4 py-4 sm:px-6 sm:py-8">
-      <div className="mx-auto grid h-[calc(100vh-2rem)] max-w-5xl gap-5 sm:h-[calc(100vh-4rem)]">
-        <header className="text-center">
-          <h1 className="text-3xl font-bold uppercase tracking-[0.25em] text-primary drop-shadow-[0_0_14px_hsl(var(--primary)/0.45)] sm:text-5xl">
+    <div className="min-h-screen px-3 py-3 sm:px-6 sm:py-7">
+      <div className="mx-auto grid h-[calc(100vh-1.5rem)] max-w-6xl gap-4 sm:h-[calc(100vh-3.5rem)]">
+        <header className="flex flex-wrap items-center justify-between gap-3 px-1">
+          <h1 className="text-2xl font-extrabold uppercase text-primary drop-shadow-[0_0_14px_hsl(var(--primary)/0.45)] sm:text-4xl">
             OpenChat
           </h1>
           {/* Tab switcher */}
-          <div className="mt-3 inline-flex gap-2 rounded-full border border-primary/20 bg-secondary/60 p-1">
-            <button
-              onClick={() => setActiveTab("chat")}
-              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[0.7rem] font-semibold uppercase tracking-[0.18em] transition-all ${
+          <div className="inline-flex gap-1 rounded-lg border border-primary/20 bg-secondary/60 p-1">
+            <Button
+              variant="ghost"
+              onClick={() => selectTab("chat")}
+              className={`cyber-action h-9 gap-1.5 rounded-md px-4 text-[0.7rem] font-semibold uppercase ${
                 activeTab === "chat"
                   ? "bg-primary text-primary-foreground shadow-[0_0_14px_hsl(var(--primary)/0.3)]"
                   : "text-muted-foreground hover:text-foreground"
@@ -401,10 +425,11 @@ const ChatRoom = () => {
             >
               <MessageSquare className="h-3.5 w-3.5" />
               Live Chat
-            </button>
-            <button
-              onClick={() => setActiveTab("video")}
-              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[0.7rem] font-semibold uppercase tracking-[0.18em] transition-all ${
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => selectTab("video")}
+              className={`cyber-action h-9 gap-1.5 rounded-md px-4 text-[0.7rem] font-semibold uppercase ${
                 activeTab === "video"
                   ? "bg-primary text-primary-foreground shadow-[0_0_14px_hsl(var(--primary)/0.3)]"
                   : "text-muted-foreground hover:text-foreground"
@@ -412,17 +437,21 @@ const ChatRoom = () => {
             >
               <Video className="h-3.5 w-3.5" />
               FaceTime
-            </button>
+            </Button>
+            <Button size="icon" variant="ghost" onClick={toggleSound} className="cyber-action h-9 w-9 rounded-md" title={soundEnabled ? "Mute sound effects" : "Enable sound effects"}>
+              {soundEnabled ? <Volume2 className="h-4 w-4 text-primary" /> : <VolumeX className="h-4 w-4 text-muted-foreground" />}
+            </Button>
           </div>
         </header>
 
-        <div className="chat-shell flex min-h-0 flex-col overflow-hidden rounded-[1.25rem] px-4 py-4 sm:px-7 sm:py-7">
+        <div className="chat-shell flex min-h-0 flex-col overflow-hidden rounded-xl px-3 py-3 sm:px-6 sm:py-6">
           <VideoChat visible={activeTab === "video"} username={username} />
           <div className={activeTab === "chat" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
           <div className="mb-5 flex flex-wrap items-center gap-3">
-            <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-foreground">
+             <span className="inline-flex items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-3 py-1.5 text-[0.7rem] font-semibold uppercase text-foreground">
               <span className="h-2.5 w-2.5 rounded-full bg-primary shadow-[0_0_14px_hsl(var(--primary)/0.65)]" />
               Live Chat
+              <span className="signal-bars ml-1 flex h-4 items-end gap-0.5" aria-hidden="true"><span /><span /><span /></span>
             </span>
             <button
               onClick={() => setShowOnline(!showOnline)}
@@ -512,10 +541,10 @@ const ChatRoom = () => {
                 return (
                   <div
                     key={msg.id}
-                    className={`flex flex-col ${isSystem ? "items-center" : isSelf ? "items-end" : "items-start"}`}
+                    className={`message-enter flex flex-col ${isSystem ? "items-center" : isSelf ? "items-end" : "items-start"}`}
                   >
                     {isSystem ? (
-                      <div className="rounded-full border border-accent/30 bg-accent/10 px-4 py-1 text-[0.68rem] uppercase tracking-[0.18em] text-foreground/90">
+                      <div className="system-scan rounded-md border border-accent/30 bg-accent/10 px-4 py-1 text-[0.68rem] uppercase text-foreground/90">
                         {msg.content}
                       </div>
                     ) : (
@@ -564,7 +593,7 @@ const ChatRoom = () => {
             )}
             <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-background/30 p-2">
               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-              <Button size="icon" variant="ghost" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="chat-tab-link h-10 w-10 shrink-0 rounded-full text-foreground hover:bg-transparent">
+               <Button size="icon" variant="ghost" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="chat-tab-link cyber-action h-10 w-10 shrink-0 rounded-md text-foreground hover:bg-transparent">
                 <Image className="h-5 w-5" />
               </Button>
               <Input
@@ -574,7 +603,7 @@ const ChatRoom = () => {
                 placeholder={isAdmin ? "Type a message or command..." : "Type a message..."}
                 className="h-10 border-0 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
               />
-              <Button size="icon" onClick={sendMessage} disabled={!newMessage.trim()} className="h-10 w-10 shrink-0 rounded-full bg-primary text-primary-foreground shadow-[0_0_18px_hsl(var(--primary)/0.32)] hover:bg-primary/90">
+               <Button size="icon" onClick={sendMessage} disabled={!newMessage.trim()} className="cyber-action h-10 w-10 shrink-0 rounded-md bg-primary text-primary-foreground shadow-[0_0_18px_hsl(var(--primary)/0.32)] hover:bg-primary/90">
                 <Send className="h-5 w-5" />
               </Button>
             </div>
@@ -588,10 +617,10 @@ const ChatRoom = () => {
           className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-sm p-4"
           onClick={(e) => { if (e.target === e.currentTarget) setShowAdminPanel(false); }}
         >
-          <div className="w-full max-w-lg rounded-2xl border border-destructive/30 bg-card p-6 shadow-[0_0_40px_hsl(var(--destructive)/0.25)]">
+          <div className="animate-scale-in w-full max-w-lg rounded-xl border border-destructive/30 bg-card p-6 shadow-[0_0_40px_hsl(var(--destructive)/0.25)]">
             <div className="mb-5 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-destructive" />
+                 <Sparkles className="h-5 w-5 text-destructive" />
                 <h2 className="text-lg font-bold uppercase tracking-[0.2em] text-foreground">Admin Panel</h2>
               </div>
               <button onClick={() => setShowAdminPanel(false)} className="text-muted-foreground hover:text-foreground">

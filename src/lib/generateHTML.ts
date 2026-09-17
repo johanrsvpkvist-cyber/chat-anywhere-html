@@ -9,27 +9,31 @@ export function generateChatHTML(): string {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"><\/script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{color-scheme:dark;--bg:#04060f;--panel:rgba(9,15,32,.82);--accent:#7ef9ff;--accent-2:#ff9bff;--accent-3:#7cff6b;--text:#eef7ff;--muted:rgba(238,247,255,.65);--danger:#ff4b4b;--warning:#ffa500;--success:#4ade80}
-body{font-family:'Inter',system-ui,sans-serif;background:radial-gradient(circle at top,rgba(75,122,255,.2),transparent 55%),radial-gradient(circle at 20% 20%,rgba(255,140,251,.18),transparent 50%),radial-gradient(circle at bottom,rgba(124,255,107,.15),transparent 50%),var(--bg);color:var(--text);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:28px 16px}
+:root{color-scheme:dark;--bg:#050507;--panel:rgba(16,16,22,.86);--accent:#7ef9ff;--accent-2:#ff6fec;--accent-3:#7cff6b;--text:#f4f7ff;--muted:rgba(238,247,255,.58);--danger:#ff4b64;--warning:#ffb52e;--success:#4ade80}
+body{font-family:Inter,system-ui,sans-serif;background:linear-gradient(rgba(126,249,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(126,249,255,.025) 1px,transparent 1px),radial-gradient(circle at 15% 0,rgba(126,249,255,.13),transparent 38%),radial-gradient(circle at 90% 100%,rgba(255,111,236,.11),transparent 35%),var(--bg);background-size:32px 32px,32px 32px,auto,auto,auto;color:var(--text);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:28px 16px}
 .app{display:grid;gap:24px;width:min(1080px,100%);height:min(95vh,980px)}
-.hero{text-align:center}
-.hero h1{font-size:clamp(2rem,4vw,3rem);letter-spacing:.25em;text-transform:uppercase;color:var(--accent);text-shadow:0 0 12px rgba(126,249,255,.45)}
+.hero{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.hero h1{font-size:clamp(1.7rem,4vw,2.8rem);text-transform:uppercase;color:var(--accent);text-shadow:0 0 12px rgba(126,249,255,.45);font-style:italic}
 .tab-switcher{margin-top:12px;display:inline-flex;gap:8px;padding:4px;border-radius:999px;background:rgba(16,28,54,.6);border:1px solid rgba(126,249,255,.2)}
 .tab-sw-btn{padding:6px 16px;border-radius:999px;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.18em;border:none;cursor:pointer;background:transparent;color:var(--muted)}
 .tab-sw-btn.active{background:var(--accent);color:var(--bg);box-shadow:0 0 14px rgba(126,249,255,.3)}
-.panel{display:flex;flex-direction:column;min-height:0;background:var(--panel);border:1px solid rgba(126,249,255,.18);border-radius:20px;padding:24px;box-shadow:0 16px 40px rgba(4,6,15,.65);backdrop-filter:blur(18px)}
+.panel{position:relative;display:flex;flex-direction:column;min-height:0;background:linear-gradient(145deg,var(--panel),rgba(5,5,7,.78));border:1px solid rgba(126,249,255,.18);border-radius:14px;padding:24px;box-shadow:0 16px 40px rgba(0,0,0,.68);backdrop-filter:blur(22px);overflow:hidden}
+.panel:before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(110deg,transparent 25%,rgba(126,249,255,.07) 45%,transparent 65%);background-size:240% 100%;animation:cyber-scan 8s linear infinite}
+#chatView,#videoView{position:relative;z-index:1}
 .topbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
 .badge{display:inline-flex;align-items:center;gap:10px;padding:6px 14px;border-radius:999px;font-size:.75rem;letter-spacing:.2em;text-transform:uppercase;background:rgba(126,249,255,.1);border:1px solid rgba(126,249,255,.3)}
 .badge::before{content:"";width:10px;height:10px;border-radius:50%;background:radial-gradient(circle,var(--accent) 0%,rgba(126,249,255,.2) 70%);box-shadow:0 0 12px rgba(126,249,255,.6)}
 .header-right{margin-left:auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .name-btn,.tab-btn{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:6px 16px;border-radius:999px;text-transform:uppercase;letter-spacing:.2em;font-size:.7rem;color:var(--text);background:linear-gradient(145deg,rgba(16,28,54,.95),rgba(10,16,32,.9));box-shadow:inset 0 0 0 1px rgba(126,249,255,.2),0 6px 14px rgba(0,0,0,.35);border:none;cursor:pointer}
-.name-btn:hover,.tab-btn:hover{box-shadow:inset 0 0 0 1px rgba(126,249,255,.35),0 10px 20px rgba(0,0,0,.45)}
+.name-btn:hover,.tab-btn:hover{box-shadow:inset 0 0 0 1px rgba(126,249,255,.35),0 10px 20px rgba(0,0,0,.45);transform:translateY(-2px);filter:brightness(1.15)}
+.name-btn,.tab-btn,.input-bar button,.admin-btn,.prelink-vote-btn{transition:transform .16s ease,filter .16s ease,box-shadow .16s ease}
+.name-btn:active,.tab-btn:active,.input-bar button:active,.admin-btn:active,.prelink-vote-btn:active{transform:translateY(1px) scale(.95)}
 .admin-badge{background:var(--danger);color:#fff;font-size:10px;padding:2px 8px;border-radius:999px;font-weight:700;text-transform:uppercase;letter-spacing:.16em}
 .tag{color:var(--accent);font-family:monospace;font-size:12px}
 #messages{flex:1;overflow-y:auto;background:rgba(0,0,0,.3);border-radius:12px;padding:15px;margin-bottom:15px;border:1px solid rgba(126,249,255,.1);display:flex;flex-direction:column;gap:12px}
 #messages::-webkit-scrollbar{width:6px}
 #messages::-webkit-scrollbar-thumb{background:rgba(126,249,255,.22);border-radius:3px}
-.msg{display:flex;flex-direction:column;max-width:75%}
+.msg{display:flex;flex-direction:column;max-width:75%;animation:message-pop .32s cubic-bezier(.2,.9,.2,1) both}
 .msg.self{align-self:flex-end;align-items:flex-end}
 .msg.other{align-self:flex-start;align-items:flex-start}
 .msg.system{align-self:center;max-width:100%;align-items:center}
@@ -38,7 +42,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:radial-gradient(circle 
 .bubble{padding:10px 16px;border-radius:16px;font-size:14px;word-break:break-word;line-height:1.5}
 .self .bubble{background:var(--accent);color:var(--bg);border-bottom-right-radius:6px;font-weight:500}
 .other .bubble{background:rgba(27,38,72,.95);color:var(--text);border-bottom-left-radius:6px}
-.system-pill{padding:7px 16px;border-radius:999px;background:rgba(255,155,255,.12);border:1px solid rgba(255,155,255,.28);font-size:11px;letter-spacing:.18em;text-transform:uppercase}
+.system-pill{padding:7px 16px;border-radius:7px;background:rgba(255,155,255,.12);border:1px solid rgba(255,155,255,.28);font-size:11px;letter-spacing:.12em;text-transform:uppercase;animation:status-scan .48s ease-out both}
 .bubble img{max-width:100%;max-height:280px;border-radius:8px;margin-top:6px}
 .input-bar{padding:12px;border:1px solid rgba(126,249,255,.18);border-radius:12px;background:rgba(255,255,255,.05)}
 .cmd-hint{font-size:11px;color:var(--muted);margin-bottom:8px;font-family:monospace;display:none;text-transform:uppercase;letter-spacing:.15em}
@@ -48,8 +52,8 @@ body{font-family:'Inter',system-ui,sans-serif;background:radial-gradient(circle 
 .img-btn{background:linear-gradient(145deg,rgba(16,28,54,.95),rgba(10,16,32,.9))!important;color:var(--text)!important;box-shadow:inset 0 0 0 1px rgba(126,249,255,.2)!important}
 .img-btn svg{width:20px;height:20px}
 .settings-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(6px)}
-.settings-overlay.open{display:flex}
-.settings-panel{background:rgba(9,15,32,.96);border:1px solid rgba(126,249,255,.25);border-radius:16px;padding:24px;width:420px;max-width:90vw;box-shadow:0 16px 40px rgba(4,6,15,.8)}
+.settings-overlay.open{display:flex;animation:overlay-in .18s ease-out}
+.settings-panel{background:rgba(14,14,20,.96);border:1px solid rgba(126,249,255,.25);border-radius:12px;padding:24px;width:420px;max-width:90vw;box-shadow:0 16px 40px rgba(0,0,0,.8);animation:panel-snap .28s cubic-bezier(.2,.9,.2,1)}
 .settings-panel h2{font-size:16px;font-weight:700;color:var(--accent);margin-bottom:16px;letter-spacing:1px;text-transform:uppercase}
 .settings-panel label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;margin-top:12px;letter-spacing:.14em;text-transform:uppercase}
 .settings-panel select,.settings-panel input[type=text]{width:100%;background:rgba(27,38,72,.95);border:1px solid rgba(126,249,255,.18);color:var(--text);padding:10px 12px;border-radius:8px;font-size:14px;outline:none}
@@ -58,7 +62,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:radial-gradient(circle 
 .btn-save{background:var(--accent);color:var(--bg)}
 .btn-cancel{background:rgba(27,38,72,.95);color:var(--muted)}
 .toast-stack{position:fixed;top:18px;right:18px;display:flex;flex-direction:column;gap:10px;z-index:200;pointer-events:none}
-.toast{min-width:220px;max-width:360px;padding:12px 16px;border-radius:14px;border:1px solid rgba(126,249,255,.26);background:rgba(9,15,32,.94);color:var(--text);box-shadow:0 18px 42px rgba(4,6,15,.55);font-size:12px;letter-spacing:.12em;text-transform:uppercase;animation:toast-in .22s ease}
+.toast{min-width:220px;max-width:360px;padding:12px 16px;border-radius:8px;border:1px solid rgba(126,249,255,.42);background:rgba(14,14,20,.94);color:var(--text);box-shadow:0 0 24px rgba(126,249,255,.16),0 18px 42px rgba(0,0,0,.55);font-size:12px;letter-spacing:.12em;text-transform:uppercase;animation:toast-in .3s cubic-bezier(.2,.9,.2,1)}
 .toast.error{border-color:rgba(255,75,75,.45);color:#ffd7d7}
 @keyframes toast-in{from{transform:translateY(-8px);opacity:0}to{transform:translateY(0);opacity:1}}
 .admin-user-row{display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,.25);padding:12px;border-radius:10px;border:1px solid rgba(126,249,255,.15)}
@@ -80,6 +84,9 @@ body{font-family:'Inter',system-ui,sans-serif;background:radial-gradient(circle 
 .big-phase-banner{font-size:13px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--accent)}
 .big-countdown-timer{font-size:3.4rem;font-weight:900;font-family:'Courier New',monospace;color:var(--accent-2);text-shadow:0 0 20px rgba(255,155,255,.8);line-height:1.1;margin-top:6px}
 .phase-mode-top .big-countdown-timer{font-size:1.4rem}
+.phase-urgent{animation:urgent-pulse .5s ease-in-out infinite alternate}
+.roulette-shake .settings-panel{animation:roulette-rumble .14s linear infinite}
+.winner-flash{animation:winner-flash .9s ease-out both}
 .wheel-container-hidden{opacity:.15;transform:scale(.75);pointer-events:none;height:60px!important;overflow:hidden}
 .wheel-container-active{opacity:1;transform:scale(1);pointer-events:auto;height:340px!important}
 .video-area{position:relative;flex:1;overflow:hidden;border-radius:12px;background:rgba(0,0,0,.4);border:1px solid rgba(126,249,255,.08);display:flex;align-items:center;justify-content:center;min-height:300px}
@@ -96,6 +103,16 @@ body{font-family:'Inter',system-ui,sans-serif;background:radial-gradient(circle 
 .vid-join button{padding:12px 32px;border-radius:999px;background:var(--accent);color:var(--bg);border:none;font-size:16px;font-weight:600;cursor:pointer}
 .hidden{display:none!important}
 #chatView,#videoView{min-height:0;flex:1;display:flex;flex-direction:column}
+@keyframes cyber-scan{to{background-position:-240% 0}}
+@keyframes message-pop{from{opacity:0;transform:translateY(10px) scale(.97)}65%{transform:translateY(-2px) scale(1.01)}to{opacity:1;transform:none}}
+@keyframes status-scan{from{opacity:0;transform:scaleX(.7);filter:brightness(2)}to{opacity:1;transform:scaleX(1);filter:none}}
+@keyframes overlay-in{from{opacity:0}to{opacity:1}}
+@keyframes panel-snap{from{opacity:0;transform:translateY(18px) scale(.94)}70%{transform:translateY(-2px) scale(1.01)}to{opacity:1;transform:none}}
+@keyframes urgent-pulse{to{transform:scale(1.04);filter:brightness(1.35)}}
+@keyframes roulette-rumble{25%{transform:translateX(1px)}75%{transform:translateX(-1px)}}
+@keyframes winner-flash{0%{transform:scale(.75);filter:brightness(3)}45%{transform:scale(1.1)}100%{transform:none;filter:none}}
+@media(max-width:700px){body{padding:10px}.app{height:calc(100vh - 20px);gap:12px}.hero{align-items:flex-start}.hero h1{font-size:1.45rem}.tab-switcher{margin-top:0}.panel{padding:12px}.topbar{gap:7px}.header-right{margin-left:0}.msg{max-width:90%}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
@@ -106,6 +123,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:radial-gradient(circle 
   <div class="tab-switcher">
     <button class="tab-sw-btn active" id="tabChat" onclick="switchTab('chat')">💬 Live Chat</button>
     <button class="tab-sw-btn" id="tabVideo" onclick="switchTab('video')">📹 FaceTime</button>
+    <button class="tab-sw-btn" id="soundToggle" onclick="toggleSound()" title="Toggle sound effects">🔇</button>
   </div>
 </div>
 <div class="panel">
@@ -226,6 +244,25 @@ const SB_URL = "https://krvtjbsluoepatdezarg.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtydnRqYnNsdW9lcGF0ZGV6YXJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5MzE5ODksImV4cCI6MjA5MDUwNzk4OX0.sxUlgZENLKZGlO09lm8Bsbqv1NLYX2YTYeQC8Fu1_9Q";
 const sb = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 20 } } });
 
+let soundEnabled = localStorage.getItem("openchat-sound") === "on";
+let audioCtx = null;
+function getAudio(){
+  if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  return audioCtx;
+}
+function tone(freq,dur,vol,type,delay){
+  if (!soundEnabled) return;
+  const ctx=getAudio(), osc=ctx.createOscillator(), gain=ctx.createGain(), at=ctx.currentTime+(delay||0);
+  osc.type=type||"sine"; osc.frequency.setValueAtTime(freq,at); gain.gain.setValueAtTime(.0001,at); gain.gain.exponentialRampToValueAtTime(vol,at+.01); gain.gain.exponentialRampToValueAtTime(.0001,at+dur); osc.connect(gain).connect(ctx.destination); osc.start(at); osc.stop(at+dur+.02);
+}
+function sfx(name){
+  const p={send:[[520,.08,.025,"sine",0],[780,.1,.02,"sine",.05]],receive:[[680,.12,.018,"sine",0],[900,.12,.014,"sine",.07]],switch:[[240,.07,.018,"square",0],[360,.07,.014,"square",.04]],success:[[440,.09,.02,"triangle",0],[660,.13,.018,"triangle",.07]],warning:[[160,.14,.025,"sawtooth",0],[120,.18,.02,"sawtooth",.11]],submit:[[420,.08,.02,"square",0],[840,.12,.018,"triangle",.06]],vote:[[760,.07,.018,"square",0]],tick:[[980,.035,.012,"square",0]],winner:[[392,.13,.024,"triangle",0],[523,.14,.022,"triangle",.1],[784,.28,.02,"triangle",.22]],blast:[[110,.16,.03,"sawtooth",0],[880,.2,.018,"square",.08]]};
+  (p[name]||[]).forEach(x=>tone(...x));
+}
+function syncSoundButton(){ const b=document.getElementById("soundToggle"); if(b){b.textContent=soundEnabled?"🔊":"🔇";b.classList.toggle("active",soundEnabled);} }
+function toggleSound(){soundEnabled=!soundEnabled;localStorage.setItem("openchat-sound",soundEnabled?"on":"off");syncSoundButton();if(soundEnabled)sfx("success");}
+
 // State
 const dayKey = new Date().toISOString().slice(0,10);
 let username = localStorage.getItem("chat-username") || ("Anon" + Math.floor(100+Math.random()*900));
@@ -248,6 +285,7 @@ function showToast(msg, type="success"){
   t.className = "toast " + type;
   t.textContent = msg;
   stack.appendChild(t);
+  sfx(type==="error"?"warning":"success");
   setTimeout(()=>t.remove(), 3200);
 }
 
@@ -282,6 +320,7 @@ window.addEventListener("keydown", e=>{
 
 
 function switchTab(tab){
+  sfx("switch");
   const cv = document.getElementById("chatView");
   const vv = document.getElementById("videoView");
   if (tab === "chat"){
@@ -368,6 +407,7 @@ function renderMessage(m){
     el.appendChild(bubble);
   }
   msgDiv.appendChild(el);
+  if (!isSelf && !isSystem) sfx("receive");
   msgDiv.scrollTop = msgDiv.scrollHeight;
 }
 
@@ -436,6 +476,7 @@ async function sendMsg(){
   }
 
   await sb.from("messages").insert({ username, content:text, user_tag:userTag });
+  sfx("send");
 }
 
 async function uploadImage(input){
@@ -663,9 +704,11 @@ function syncRouletteClock(){
 
     if (phase !== roulettePhase){
       if (phase === "SUBMIT"){
+        sfx("submit");
         showToast("🔗 Submit your link! (10s)");
         document.getElementById("rouletteOverlay").classList.add("open");
       } else if (phase === "VOTE"){
+        sfx("vote");
         showToast("👍 Vote now! (3s)");
         document.getElementById("rouletteOverlay").classList.add("open");
       } else if (phase === "IDLE" && lastCyclePhase === "VOTE"){
@@ -675,6 +718,8 @@ function syncRouletteClock(){
       roulettePhase = phase;
     }
     document.getElementById("phaseTitle").textContent = banner;
+    big.classList.toggle("phase-urgent", phase !== "IDLE" && remaining <= 3);
+    if (phase !== "IDLE" && remaining <= 3 && remaining !== syncRouletteClock.lastTick){ sfx("tick"); syncRouletteClock.lastTick=remaining; }
     document.getElementById("preLinkInput").disabled = !canSubmit;
     document.getElementById("preLinkSubmitBtn").disabled = !canSubmit;
     lastCyclePhase = phase;
@@ -685,6 +730,7 @@ async function triggerSpin(){
   if (rSpinning) return;
   if (preLinks.length === 0) return;
   rSpinning = true;
+  document.getElementById("rouletteOverlay").classList.add("roulette-shake");
   document.getElementById("roulettePhaseContainer").className = "phase-mode-top";
   document.getElementById("wheelContainer").className = "wheel-container-active";
 
@@ -695,6 +741,7 @@ async function triggerSpin(){
   const winner = tops[seed % tops.length];
 
   await spinWheelAnim(winner);
+  document.getElementById("rouletteOverlay").classList.remove("roulette-shake");
   handleWinner(winner);
 
   setTimeout(()=>{
@@ -715,6 +762,10 @@ function handleWinner(winner){
   const name = winner.submitterName || "User";
   const tag = winner.submitter;
   document.getElementById("rouletteWinnerDisplay").innerHTML = "🏆 <b>"+escapeHtml(name)+"</b> (#"+tag+") won with <span style='color:var(--accent-2)'>"+escapeHtml(winner.url)+"</span>";
+  document.getElementById("rouletteWinnerDisplay").classList.remove("winner-flash");
+  void document.getElementById("rouletteWinnerDisplay").offsetWidth;
+  document.getElementById("rouletteWinnerDisplay").classList.add("winner-flash");
+  sfx("winner");
   showToast("🏆 Winner: "+name+" (#"+tag+")");
   postSystemMessage("🏆 "+name+" (#"+tag+") won the roulette with "+winner.url).catch(()=>{});
 
@@ -756,6 +807,7 @@ function renderWinnerPanel(){
 async function blastTarget(tag, name){
   if (!winnerPower || winnerPower.usesLeft <= 0) return;
   const url = winnerPower.url;
+  sfx("blast");
   winnerPower.usesLeft = 0;
   for (let i=0;i<3;i++){
     await sb.from("messages").insert({username:"System",content:"__SEND__:#"+tag+":"+url,user_tag:"0000"});
@@ -777,10 +829,13 @@ function spinWheelAnim(winner){
     const targetAngle = (Math.PI*2*5) + (Math.PI*1.5 - (winIdx*arc + arc/2));
     const dur = 1800;
     const start = performance.now();
+    let lastTickSegment = -1;
     function frame(now){
       const t = Math.min(1, (now-start)/dur);
       const eased = 1 - Math.pow(1-t, 3);
       const angle = eased * targetAngle;
+      const tickSegment = Math.floor(angle/arc);
+      if (tickSegment !== lastTickSegment){ lastTickSegment=tickSegment; sfx("tick"); }
       ctx.clearRect(0,0,340,340);
       ctx.save();
       ctx.translate(170,170);
