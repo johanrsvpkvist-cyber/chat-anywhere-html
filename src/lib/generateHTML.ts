@@ -689,7 +689,7 @@ function renderPreLinks(){
 }
 
 function syncRouletteClock(){
-  setInterval(()=>{
+  const updateClock = ()=>{
     const nowSec = Math.floor(Date.now()/1000);
     const cycleSec = nowSec % CYCLE_TOTAL_SEC;
     const badge = document.getElementById("rouletteTimerBadge");
@@ -717,13 +717,18 @@ function syncRouletteClock(){
       }
       roulettePhase = phase;
     }
+    if ((phase === "SUBMIT" || phase === "VOTE") && !rSpinning) {
+      document.getElementById("rouletteOverlay").classList.add("open");
+    }
     document.getElementById("phaseTitle").textContent = banner;
     big.classList.toggle("phase-urgent", phase !== "IDLE" && remaining <= 3);
     if (phase !== "IDLE" && remaining <= 3 && remaining !== syncRouletteClock.lastTick){ sfx("tick"); syncRouletteClock.lastTick=remaining; }
     document.getElementById("preLinkInput").disabled = !canSubmit;
     document.getElementById("preLinkSubmitBtn").disabled = !canSubmit;
     lastCyclePhase = phase;
-  }, 500);
+  };
+  updateClock();
+  setInterval(updateClock, 500);
 }
 
 async function triggerSpin(){
@@ -868,10 +873,11 @@ function spinWheelAnim(winner){
 
 // Bootstrap
 window.addEventListener("DOMContentLoaded", async ()=>{
-  await loadMessages();
-  initRealtime();
+  syncSoundButton();
   syncRouletteClock();
   updateOnlineListUI();
+  await loadMessages();
+  initRealtime();
 });
 <\/script>
 </body>
