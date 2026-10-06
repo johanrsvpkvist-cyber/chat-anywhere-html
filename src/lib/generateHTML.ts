@@ -79,16 +79,39 @@ body{font-family:Inter,system-ui,sans-serif;background:linear-gradient(rgba(126,
 .prelink-url{color:var(--accent);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}
 .prelink-vote-btn{background:rgba(126,249,255,.15);border:1px solid rgba(126,249,255,.3);color:var(--text);padding:2px 8px;border-radius:6px;cursor:pointer;font-size:11px}
 .prelink-vote-btn.voted{background:var(--accent);color:var(--bg);font-weight:bold}
-.phase-mode-centered{margin:16px auto;padding:24px 20px;background:radial-gradient(circle,rgba(16,28,54,.95),rgba(9,15,32,.98));border:2px solid rgba(126,249,255,.4);border-radius:20px;box-shadow:0 0 35px rgba(126,249,255,.25)}
-.phase-mode-top{margin:4px auto 12px;padding:8px 14px;background:rgba(126,249,255,.12);border:1px solid rgba(126,249,255,.3);border-radius:12px}
+.roulette-terminal{width:min(680px,94vw)!important;max-height:94vh;overflow:auto;text-align:center!important;position:relative;padding:26px!important;background:linear-gradient(145deg,rgba(13,17,23,.98),rgba(5,7,10,.99))!important;border-color:rgba(0,243,255,.22)!important;box-shadow:0 0 0 1px rgba(255,46,136,.08),0 0 90px rgba(0,0,0,.9)!important}
+.roulette-terminal:before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(rgba(0,243,255,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(0,243,255,.022) 1px,transparent 1px);background-size:20px 20px;mask-image:linear-gradient(to bottom,#000,transparent 85%)}
+.roulette-header{position:relative;display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid rgba(0,243,255,.16)}
+.roulette-header h2{margin:0!important;font-family:'Courier New',monospace;letter-spacing:.28em;font-size:13px!important}
+.hud-node{width:7px;height:7px;background:#00f3ff;box-shadow:0 0 12px #00f3ff;animation:hud-blink 1.1s ease-in-out infinite alternate}
+.roulette-close{position:absolute;top:0;right:0;background:transparent;border:1px solid rgba(255,255,255,.1);color:var(--muted);width:28px;height:28px;cursor:pointer;font-size:16px}
+.phase-mode-centered{margin:0 auto 14px;padding:16px 20px;background:linear-gradient(135deg,rgba(255,46,136,.05),rgba(0,243,255,.04));border:1px solid rgba(255,255,255,.08);border-radius:10px;box-shadow:inset 0 0 40px rgba(0,0,0,.35),0 0 30px rgba(255,46,136,.05)}
+.phase-mode-top{margin:0 auto 10px;padding:7px 14px;background:rgba(0,243,255,.06);border:1px solid rgba(0,243,255,.22);border-radius:7px}
 .big-phase-banner{font-size:13px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--accent)}
-.big-countdown-timer{font-size:3.4rem;font-weight:900;font-family:'Courier New',monospace;color:var(--accent-2);text-shadow:0 0 20px rgba(255,155,255,.8);line-height:1.1;margin-top:6px}
+.big-countdown-timer{font-size:4.6rem;font-weight:900;font-family:'Courier New',monospace;color:#ff2e88;text-shadow:0 0 8px rgba(255,46,136,.9),0 0 32px rgba(255,46,136,.35);line-height:1;margin-top:10px}
 .phase-mode-top .big-countdown-timer{font-size:1.4rem}
 .phase-urgent{animation:urgent-pulse .5s ease-in-out infinite alternate}
-.roulette-shake .settings-panel{animation:roulette-rumble .14s linear infinite}
+.roulette-shake .roulette-terminal{animation:roulette-rumble .14s linear infinite}
 .winner-flash{animation:winner-flash .9s ease-out both}
-.wheel-container-hidden{opacity:.15;transform:scale(.75);pointer-events:none;height:60px!important;overflow:hidden}
-.wheel-container-active{opacity:1;transform:scale(1);pointer-events:auto;height:340px!important}
+.reactor-stage{position:relative;width:350px;height:350px;margin:0 auto 14px;display:grid;place-items:center;filter:drop-shadow(0 0 24px rgba(0,243,255,.12))}
+.reactor-ring{position:absolute;border-radius:50%;pointer-events:none}
+.reactor-ring.outer{inset:4px;border:2px dashed rgba(0,243,255,.28);animation:reactor-orbit 18s linear infinite}
+.reactor-ring.mid{inset:21px;border:1px solid rgba(0,243,255,.42);box-shadow:inset 0 0 25px rgba(0,243,255,.06)}
+.reactor-ring.inner{inset:43px;border:1px dashed rgba(255,46,136,.32);animation:reactor-orbit 12s linear infinite reverse}
+.reactor-ring.outer:before,.reactor-ring.outer:after{content:"";position:absolute;width:9px;height:9px;background:#00f3ff;box-shadow:0 0 12px #00f3ff;transform:rotate(45deg)}
+.reactor-ring.outer:before{top:14%;left:13%}.reactor-ring.outer:after{bottom:14%;right:13%;background:#ff2e88;box-shadow:0 0 12px #ff2e88}
+.target-reticle{position:absolute;top:-1px;left:50%;z-index:4;transform:translateX(-50%);width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:22px solid #ff2e88;filter:drop-shadow(0 0 8px #ff2e88)}
+.reactor-core{position:absolute;inset:116px;border-radius:50%;z-index:3;display:grid;place-items:center;background:radial-gradient(circle,rgba(0,243,255,.18),rgba(0,243,255,.025) 55%,transparent 72%);border:1px solid rgba(0,243,255,.25);box-shadow:0 0 30px rgba(0,243,255,.14),inset 0 0 24px rgba(0,243,255,.1);pointer-events:none}
+.reactor-core span{font-family:'Courier New',monospace;font-size:9px;letter-spacing:.18em;color:#00f3ff;text-transform:uppercase;animation:hud-blink .9s ease-in-out infinite alternate}
+.reactor-beam{position:absolute;z-index:2;width:2px;height:155px;top:20px;left:50%;transform-origin:50% 155px;background:linear-gradient(#ff2e88,transparent);filter:drop-shadow(0 0 5px #ff2e88);opacity:.8;animation:beam-scan 4s linear infinite}
+.reactor-stage canvas{position:relative;z-index:1;border-radius:50%;filter:drop-shadow(0 0 18px rgba(0,243,255,.18))}
+.wheel-container-hidden{opacity:.55;transform:scale(.88);pointer-events:none;height:350px!important;transition:opacity .4s ease,transform .4s ease}
+.wheel-container-active{opacity:1;transform:scale(1);pointer-events:auto;height:350px!important;transition:opacity .4s ease,transform .4s ease}
+.roulette-pool{position:relative;background:rgba(13,17,23,.82);padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,.07);text-align:left;overflow:hidden}
+.roulette-pool:before{content:"";position:absolute;inset:0 0 auto;height:1px;background:linear-gradient(90deg,transparent,#00f3ff,transparent);opacity:.5}
+.roulette-pool-head{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px;font-size:10px;text-transform:uppercase;letter-spacing:.15em;color:#fff}
+.roulette-status{color:#00f3ff;font-family:monospace;font-size:9px}.roulette-input-row{display:flex;gap:7px}
+.roulette-input-row input{flex:1!important;background:rgba(0,0,0,.35)!important;border-color:rgba(255,255,255,.1)!important}.roulette-input-row button{background:#00f3ff!important;color:#05070a!important;text-transform:uppercase;letter-spacing:.12em;border-radius:7px!important;box-shadow:0 0 18px rgba(0,243,255,.2)}
 .video-area{position:relative;flex:1;overflow:hidden;border-radius:12px;background:rgba(0,0,0,.4);border:1px solid rgba(126,249,255,.08);display:flex;align-items:center;justify-content:center;min-height:300px}
 .video-area video{width:100%;height:100%;object-fit:cover}
 .pip{position:absolute;bottom:12px;right:12px;width:130px;height:160px;border-radius:12px;overflow:hidden;border:2px solid rgba(126,249,255,.3);background:#000}
@@ -111,7 +134,10 @@ body{font-family:Inter,system-ui,sans-serif;background:linear-gradient(rgba(126,
 @keyframes urgent-pulse{to{transform:scale(1.04);filter:brightness(1.35)}}
 @keyframes roulette-rumble{25%{transform:translateX(1px)}75%{transform:translateX(-1px)}}
 @keyframes winner-flash{0%{transform:scale(.75);filter:brightness(3)}45%{transform:scale(1.1)}100%{transform:none;filter:none}}
-@media(max-width:700px){body{padding:10px}.app{height:calc(100vh - 20px);gap:12px}.hero{align-items:flex-start}.hero h1{font-size:1.45rem}.tab-switcher{margin-top:0}.panel{padding:12px}.topbar{gap:7px}.header-right{margin-left:0}.msg{max-width:90%}}
+@keyframes reactor-orbit{to{transform:rotate(360deg)}}
+@keyframes beam-scan{to{transform:rotate(360deg)}}
+@keyframes hud-blink{to{opacity:.32;filter:brightness(1.8)}}
+@media(max-width:700px){body{padding:10px}.app{height:calc(100vh - 20px);gap:12px}.hero{align-items:flex-start}.hero h1{font-size:1.45rem}.tab-switcher{margin-top:0}.panel{padding:12px}.topbar{gap:7px}.header-right{margin-left:0}.msg{max-width:90%}.roulette-terminal{padding:16px 12px!important}.reactor-stage{width:280px;height:280px}.reactor-stage canvas{width:270px;height:270px}.reactor-core{inset:94px}.reactor-beam{height:122px;top:18px;transform-origin:50% 122px}.wheel-container-hidden,.wheel-container-active{height:280px!important}.big-countdown-timer{font-size:3.6rem}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
 </style>
 </head>
@@ -213,25 +239,26 @@ body{font-family:Inter,system-ui,sans-serif;background:linear-gradient(rgba(126,
 
 <!-- Roulette Overlay -->
 <div class="settings-overlay" id="rouletteOverlay" onclick="if(event.target===this)closeRoulette()">
-  <div class="settings-panel" style="width:520px;text-align:center;position:relative">
-    <button onclick="closeRoulette()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">✕</button>
-    <h2>🎯 Cyber Node Roulette</h2>
+  <div class="settings-panel roulette-terminal">
+    <div class="roulette-header"><span class="hud-node"></span><h2>Cyber Node Roulette</h2><span class="hud-node"></span><button class="roulette-close" onclick="closeRoulette()">✕</button></div>
     <div id="roulettePhaseContainer" class="phase-mode-centered">
       <div class="big-phase-banner"><span id="phaseTitle">⏳ NEXT ROUND IN</span></div>
       <div class="big-countdown-timer" id="bigCountdownDisplay">2:00</div>
     </div>
-    <div id="wheelContainer" class="wheel-container-hidden" style="position:relative;width:340px;height:340px;margin:0 auto 12px">
-      <canvas id="rouletteCanvas" width="340" height="340" style="border-radius:50%;box-shadow:0 0 30px rgba(126,249,255,.2)"></canvas>
+    <div id="wheelContainer" class="reactor-stage wheel-container-hidden">
+      <span class="reactor-ring outer"></span><span class="reactor-ring mid"></span><span class="reactor-ring inner"></span><span class="reactor-beam"></span><span class="target-reticle"></span>
+      <canvas id="rouletteCanvas" width="340" height="340"></canvas>
+      <div class="reactor-core"><span id="reactorLabel">Scanning pool</span></div>
     </div>
     <div id="rouletteWinnerDisplay" style="min-height:28px;font-weight:bold;color:var(--accent);margin-bottom:12px;text-shadow:0 0 10px var(--accent)"></div>
     <div id="winnerPowerPanel" style="display:none;background:rgba(255,155,255,.08);border:1px solid rgba(255,155,255,.35);padding:12px;border-radius:12px;margin-bottom:12px;text-align:left">
       <div style="font-size:11px;text-transform:uppercase;letter-spacing:.15em;color:var(--accent-2);margin-bottom:8px">🏆 You won! Pick a target — they will be sent to your link 3 times.</div>
       <div id="winnerTargetList" style="max-height:160px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
     </div>
-    <div style="background:rgba(16,28,54,.7);padding:12px;border-radius:12px;border:1px solid rgba(126,249,255,.25);text-align:left">
-      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);margin-bottom:8px">Link Pool <span style="color:var(--accent-2)">(1 link + 1 vote per user)</span></div>
+    <div class="roulette-pool">
+      <div class="roulette-pool-head"><span>Link Pool <span style="color:var(--accent-2)">(1 link + 1 vote per user)</span></span><span class="roulette-status">ACTIVE_NODE</span></div>
       <div id="preLinkList" style="max-height:160px;overflow-y:auto;margin-bottom:10px"></div>
-      <div style="display:flex;gap:6px">
+      <div class="roulette-input-row">
         <input type="text" id="preLinkInput" placeholder="Paste URL to submit..." style="flex:1;background:rgba(0,0,0,.3);border:1px solid rgba(126,249,255,.2);color:var(--text);padding:8px 10px;border-radius:6px;font-size:12px;outline:none">
         <button id="preLinkSubmitBtn" onclick="submitPreLink()" style="background:var(--accent);color:var(--bg);border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600">Submit</button>
       </div>
