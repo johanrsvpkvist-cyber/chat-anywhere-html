@@ -871,46 +871,20 @@ async function blastTarget(tag, name){
 
 function spinWheelAnim(winner){
   return new Promise(res=>{
-    const canvas = document.getElementById("rouletteCanvas");
-    const ctx = canvas.getContext("2d");
     const N = preLinks.length;
-    const colors = ['#7ef9ff','#ff9bff','#7cff6b','#ffb700','#ff3b5c','#9d00ff','#00f0ff','#ff00eb'];
     const winIdx = preLinks.indexOf(winner);
     const arc = (Math.PI*2)/N;
-    const targetAngle = (Math.PI*2*5) + (Math.PI*1.5 - (winIdx*arc + arc/2));
-    const dur = 1800;
+    const targetAngle = (Math.PI*2*6) + (Math.PI*1.5 - (winIdx*arc + arc/2));
+    const dur = 2400;
     const start = performance.now();
     let lastTickSegment = -1;
     function frame(now){
       const t = Math.min(1, (now-start)/dur);
-      const eased = 1 - Math.pow(1-t, 3);
+      const eased = 1 - Math.pow(1-t, 4);
       const angle = eased * targetAngle;
       const tickSegment = Math.floor(angle/arc);
       if (tickSegment !== lastTickSegment){ lastTickSegment=tickSegment; sfx("tick"); }
-      ctx.clearRect(0,0,340,340);
-      ctx.save();
-      ctx.translate(170,170);
-      ctx.rotate(angle);
-      for (let i=0;i<N;i++){
-        ctx.beginPath();
-        ctx.moveTo(0,0);
-        ctx.arc(0,0,160, i*arc, (i+1)*arc);
-        ctx.fillStyle = colors[i%colors.length];
-        ctx.fill();
-        ctx.save();
-        ctx.rotate(i*arc + arc/2);
-        ctx.fillStyle = "#04060f";
-        ctx.font = "bold 11px monospace";
-        ctx.textAlign = "right";
-        const label = (preLinks[i].url||"").replace(/^https?:\\/\\//,"").slice(0,14);
-        ctx.fillText(label, 150, 4);
-        ctx.restore();
-      }
-      ctx.restore();
-      // pointer
-      ctx.fillStyle = "#fff";
-      ctx.beginPath();
-      ctx.moveTo(170, 5); ctx.lineTo(160, 25); ctx.lineTo(180, 25); ctx.closePath(); ctx.fill();
+      drawRouletteWheel(angle);
       if (t<1) requestAnimationFrame(frame); else res();
     }
     requestAnimationFrame(frame);
