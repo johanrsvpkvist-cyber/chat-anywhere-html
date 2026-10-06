@@ -702,7 +702,7 @@ function renderPreLinks(){
   if (!list) return;
   const maxVotes = Math.max(0, ...preLinks.map(p=>Object.keys(p.votes||{}).length));
   list.innerHTML = "";
-  if (preLinks.length === 0){ list.innerHTML = '<div style="color:var(--muted);font-size:11px;text-align:center;padding:8px">No links yet</div>'; return; }
+  if (preLinks.length === 0){ list.innerHTML = '<div style="color:rgba(255,255,255,.28);font-size:10px;text-align:center;padding:18px;border:1px dashed rgba(255,255,255,.08);border-radius:7px;font-style:italic">System waiting for node broadcast...</div>'; drawRouletteWheel(0); return; }
   preLinks.forEach(p=>{
     const votes = Object.keys(p.votes||{}).length;
     const voted = p.votes && p.votes[userTag];
@@ -713,6 +713,21 @@ function renderPreLinks(){
       '<button class="prelink-vote-btn'+(voted?" voted":"")+'" onclick="votePreLink(\\''+p.id+'\\')">👍 '+votes+'</button>';
     list.appendChild(row);
   });
+  drawRouletteWheel(0);
+}
+
+function drawRouletteWheel(angle){
+  const canvas=document.getElementById("rouletteCanvas"); if(!canvas)return;
+  const ctx=canvas.getContext("2d"), count=Math.max(preLinks.length,12), arc=Math.PI*2/count;
+  ctx.clearRect(0,0,340,340);ctx.save();ctx.translate(170,170);ctx.rotate(angle||0);
+  for(let i=0;i<count;i++){
+    const active=i<preLinks.length, hue=i%2===0?"0,243,255":"255,46,136";
+    ctx.beginPath();ctx.arc(0,0,132,i*arc+.018,(i+1)*arc-.018);ctx.arc(0,0,63,(i+1)*arc-.018,i*arc+.018,true);ctx.closePath();
+    ctx.fillStyle=active?"rgba("+hue+",.32)":"rgba(255,255,255,.025)";ctx.fill();ctx.strokeStyle=active?"rgba("+hue+",.75)":"rgba(255,255,255,.08)";ctx.lineWidth=active?2:1;ctx.stroke();
+    ctx.save();ctx.rotate(i*arc+arc/2);ctx.fillStyle=active?"#eafcff":"rgba(255,255,255,.16)";ctx.font="bold 9px monospace";ctx.textAlign="right";
+    const label=active?(preLinks[i].url||"").replace(/^https?:\/\//,"").slice(0,15):String(i+1).padStart(2,"0");ctx.fillText(label,122,3);ctx.restore();
+  }
+  ctx.beginPath();ctx.arc(0,0,52,0,Math.PI*2);ctx.fillStyle="rgba(0,8,12,.95)";ctx.fill();ctx.strokeStyle="rgba(0,243,255,.55)";ctx.lineWidth=2;ctx.stroke();ctx.restore();
 }
 
 function syncRouletteClock(){
@@ -748,6 +763,8 @@ function syncRouletteClock(){
       document.getElementById("rouletteOverlay").classList.add("open");
     }
     document.getElementById("phaseTitle").textContent = banner;
+    const reactorLabel=document.getElementById("reactorLabel");
+    if(reactorLabel) reactorLabel.textContent=phase==="IDLE"?"Scanning pool":phase==="SUBMIT"?"Receiving links":"Votes locked";
     big.classList.toggle("phase-urgent", phase !== "IDLE" && remaining <= 3);
     if (phase !== "IDLE" && remaining <= 3 && remaining !== syncRouletteClock.lastTick){ sfx("tick"); syncRouletteClock.lastTick=remaining; }
     document.getElementById("preLinkInput").disabled = !canSubmit;
@@ -762,6 +779,7 @@ async function triggerSpin(){
   if (rSpinning) return;
   if (preLinks.length === 0) return;
   rSpinning = true;
+  document.getElementById("reactorLabel").textContent="Target acquired";
   document.getElementById("rouletteOverlay").classList.add("roulette-shake");
   document.getElementById("roulettePhaseContainer").className = "phase-mode-top";
   document.getElementById("wheelContainer").className = "wheel-container-active";
@@ -797,6 +815,7 @@ function handleWinner(winner){
   document.getElementById("rouletteWinnerDisplay").classList.remove("winner-flash");
   void document.getElementById("rouletteWinnerDisplay").offsetWidth;
   document.getElementById("rouletteWinnerDisplay").classList.add("winner-flash");
+  document.getElementById("reactorLabel").textContent="Winner locked";
   sfx("winner");
   showToast("🏆 Winner: "+name+" (#"+tag+")");
   postSystemMessage("🏆 "+name+" (#"+tag+") won the roulette with "+winner.url).catch(()=>{});
