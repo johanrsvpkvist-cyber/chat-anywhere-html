@@ -1,3 +1,5 @@
+import supabaseStandalone from "./supabaseStandalone.min.js?raw";
+
 export function generateChatHTML(): string {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -6,7 +8,7 @@ export function generateChatHTML(): string {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>OpenChat</title>
 <link rel="icon" id="favicon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💬</text></svg>">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"><\/script>
+<script>${supabaseStandalone}<\/script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{color-scheme:dark;--bg:#050507;--panel:rgba(16,16,22,.86);--accent:#7ef9ff;--accent-2:#ff6fec;--accent-3:#7cff6b;--text:#f4f7ff;--muted:rgba(238,247,255,.58);--danger:#ff4b64;--warning:#ffb52e;--success:#4ade80}
