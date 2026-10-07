@@ -725,7 +725,7 @@ function drawRouletteWheel(angle){
     ctx.beginPath();ctx.arc(0,0,132,i*arc+.018,(i+1)*arc-.018);ctx.arc(0,0,63,(i+1)*arc-.018,i*arc+.018,true);ctx.closePath();
     ctx.fillStyle=active?"rgba("+hue+",.32)":"rgba(255,255,255,.025)";ctx.fill();ctx.strokeStyle=active?"rgba("+hue+",.75)":"rgba(255,255,255,.08)";ctx.lineWidth=active?2:1;ctx.stroke();
     ctx.save();ctx.rotate(i*arc+arc/2);ctx.fillStyle=active?"#eafcff":"rgba(255,255,255,.16)";ctx.font="bold 9px monospace";ctx.textAlign="right";
-    const label=active?(preLinks[i].url||"").replace(/^https?:\/\//,"").slice(0,15):String(i+1).padStart(2,"0");ctx.fillText(label,122,3);ctx.restore();
+    const label=active?(preLinks[i].url||"").replace("https://","").replace("http://","").slice(0,15):String(i+1).padStart(2,"0");ctx.fillText(label,122,3);ctx.restore();
   }
   ctx.beginPath();ctx.arc(0,0,52,0,Math.PI*2);ctx.fillStyle="rgba(0,8,12,.95)";ctx.fill();ctx.strokeStyle="rgba(0,243,255,.55)";ctx.lineWidth=2;ctx.stroke();ctx.restore();
 }
